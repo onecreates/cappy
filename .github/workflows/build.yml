@@ -11,6 +11,8 @@ jobs:
   build:
     runs-on: macos-latest
     timeout-minutes: 60
+    permissions:
+      contents: write
     steps:
     - uses: actions/checkout@v3
     
@@ -25,9 +27,23 @@ jobs:
     
     - name: Build DMG
       run: npm run dist:mac
+      env:
+        GH_TOKEN: ${{ github.token }}
+    
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          dist/*.dmg
+          dist/*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Upload DMG artifact
       uses: actions/upload-artifact@v3
       with:
         name: cappy-dmg
-        path: dist/*.dmg
+        path: |
+          dist/*.dmg
+          dist/*.zip
