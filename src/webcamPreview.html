@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello World!</title>
+    <link rel="stylesheet" href="index.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #222;
+        -webkit-app-region: drag;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        animation: fadeIn 0.3s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      .titlebar {
+        width: 100vw;
+        height: 32px;
+        background: rgba(35,35,35,0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        font-size: 0.9em;
+        color: #aaa;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        position: relative;
+        transition: background-color 0.3s ease;
+      }
+      
+      .titlebar:hover {
+        background: rgba(45,45,45,0.98);
+      }
+      
+      .titlebar::before {
+        content: '⋮⋮';
+        position: absolute;
+        left: 12px;
+        color: #666;
+        font-size: 12px;
+        letter-spacing: 2px;
+      }
+      
+      .titlebar::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, 
+          rgba(255,255,255,0) 0%, 
+          rgba(255,255,255,0.1) 50%, 
+          rgba(255,255,255,0) 100%
+        );
+      }
+      .preview-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        width: 200px;
+        position: relative;
+        overflow: hidden;
+        transition: background-color 0.3s ease;
+      }
+      #webcam-canvas {
+        width: 200px;
+        height: 200px;
+        display: block;
+        background: transparent;
+        border-radius: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .preview-container:hover #webcam-canvas {
+        transform: scale(1.02);
+      }
+      #webcam {
+        display: none;
+      }
+      /* Add subtle border glow when blur is enabled */
+      .blur-enabled #webcam-canvas {
+        box-shadow: 0 0 25px rgba(29,233,182,0.25);
+      }
+      /* Loading overlay styles */
+      .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(35,35,35,0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid transparent;
+        border-top: 3px solid #1de9b6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 12px;
+      }
+      .loading-text {
+        color: #fff;
+        font-size: 0.9em;
+        letter-spacing: 0.05em;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .preview-container::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 12px;
+        pointer-events: none;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+        transition: box-shadow 0.3s ease;
+      }
+      
+      .preview-container:hover::after {
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+      }
+    </style>
+  </head>
+  <body style="margin:0;overflow:hidden;background:#222;-webkit-app-region:drag;">
+    <div class="titlebar">
+      
+    </div>
+    <div class="preview-container">
+      <canvas id="webcam-canvas" width="200" height="200"></canvas>
+    </div>
+    <video id="webcam" autoplay playsinline style="display:none;"></video>
+    <div class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading BodyPix...</div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
+    <script>
+      const DEBUG_MODE = false;
+      window.blurBgEnabled = false;
+      window.selectedBgColor = '#222';
+      let bodyPixNet = null;
+      let isReady = false;
+
+      window.electronAPI.onSetBlur((enabled) => {
+        window.blurBgEnabled = enabled;
+        updateBlurStyle(enabled);
+      });
+
+      window.electronAPI.onSetBgColor((color) => {
+        window.selectedBgColor = color;
+      });
+      window.selectedBgColor = '#222';
+      window.electronAPI.onSetBgColor((color) => {
+  console.log('[PREVIEW] Received set-bgcolor:', color, typeof color);
+  window.selectedBgColor = color;
+});
+
+      async function setupWebcam() {
+        try {
+          const video = document.getElementById('webcam');
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: {
+              width: 200 ,
+              height: 200,
+              zoom: false,
+              pan: false,
+              tilt: false,
+              resizeMode: "none"
+            }, 
+            audio: false 
+          });
+          video.srcObject = stream;
+          await new Promise(resolve => video.onloadedmetadata = resolve);
+          await video.play();
+          return video;
+        } catch (error) {
+          console.error('[PREVIEW] Error setting up webcam:', error);
+          throw error;
+        }
+      }
+
+      (async function() {
+        try {
+          console.log('[PREVIEW] Starting webcam preview...');
+          const video = await setupWebcam();
+          const canvas = document.getElementById('webcam-canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d');
+
+          try {
+            bodyPixNet = await bodyPix.load({
+              architecture: 'MobileNetV1',
+              outputStride: 8,            // Higher accuracy with smaller stride
+              multiplier: 1.0,            // Maximum accuracy
+              quantBytes: 4               // Maximum precision
+            });
+          } catch (modelError) {
+            console.error('[PREVIEW] Failed to load primary model configuration, trying fallback...');
+            try {
+              // Fallback to a more commonly available model configuration
+              bodyPixNet = await bodyPix.load({
+                architecture: 'MobileNetV1',
+                outputStride: 16,
+                multiplier: 1.0,
+                quantBytes: 4
+              });
+              console.log('[PREVIEW] BodyPix model loaded with fallback configuration');
+            } catch (fallbackError) {
+              console.error('[PREVIEW] Failed to load fallback model:', fallbackError);
+              throw new Error('Failed to load BodyPix model. Please check your internet connection and try again.');
+            }
+          }
+          const offCanvas = document.createElement('canvas');
+          offCanvas.width = video.videoWidth;
+          offCanvas.height = video.videoHeight;
+          const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+
+          // Performance monitoring and adaptive frame skipping
+          let lastFrameTime = 0;
+          let frameCount = 0;
+          let lastPerfCheck = 0;
+          let avgFrameTime = 0;
+          const targetFPS = 30;
+          const frameInterval = 1000 / targetFPS;
+          let segmentationInProgress = false;
+          let skipFrames = 0;
+
+          // Performance monitoring function
+          function updatePerformanceMetrics(frameTime) {
+            frameCount++;
+            const now = performance.now();
+            if (now - lastPerfCheck > 1000) { // Check every second
+              avgFrameTime = (now - lastPerfCheck) / frameCount;
+              // Adjust frame skipping based on performance
+              if (avgFrameTime > 50) { // If taking more than 50ms per frame
+                skipFrames = Math.min(skipFrames + 1, 2);
+              } else if (avgFrameTime < 30) { // If performing well
+                skipFrames = Math.max(skipFrames - 1, 0);
+              }
+              frameCount = 0;
+              lastPerfCheck = now;
+              if (DEBUG_MODE) {
+                console.log(`Avg frame time: ${avgFrameTime.toFixed(2)}ms, skipping ${skipFrames} frames`);
+              }
+            }
+          }
+
+          async function drawBlurred(timestamp) {
+            try {
+              if (!video.videoWidth) return requestAnimationFrame(drawBlurred);
+              
+              // Throttle frame rate
+              // Frame rate throttling and skipping
+              if (timestamp - lastFrameTime < frameInterval) {
+                requestAnimationFrame(drawBlurred);
+                return;
+              }
+              lastFrameTime = timestamp;
+              
+              // Update performance metrics
+              updatePerformanceMetrics(timestamp);
+              
+              // Skip frames if needed
+              if (skipFrames > 0 && frameCount % (skipFrames + 1) !== 0) {
+                requestAnimationFrame(drawBlurred);
+                return;
+              }
+              
+              offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
+              
+              if (window.blurBgEnabled && bodyPixNet && !segmentationInProgress) {
+                segmentationInProgress = true;
+                // Draw the video first
+                offCtx.drawImage(video, 0, 0);
+                
+                // Run segmentation with high-accuracy settings
+                const segmentation = await bodyPixNet.segmentPerson(video, {
+                  internalResolution: 'medium',
+                  segmentationThreshold: 0.6,    // Lower threshold for better edge detection
+                  maxDetections: 1,
+                  scoreThreshold: 0.2,           // Lower threshold to detect more body parts
+                  flipHorizontal: false,         // Keep default orientation
+                  modelConfig: {
+                    architecture: 'MobileNetV1',
+                    outputStride: 8,
+                    multiplier: 1.0,
+                    quantBytes: 4
+                  }
+                });
+                
+                // Create foreground and background masks
+                const foregroundColor = { r: 0, g: 0, b: 0, a: 255 };
+                const backgroundColor = { r: 0, g: 0, b: 0, a: 0 };
+                const personMask = bodyPix.toMask(
+                  segmentation,
+                  foregroundColor,
+                  backgroundColor
+                );
+
+                // Enhanced edge processing and blur
+                const edgeBlurRadius = 5;  // Sharper edge blur
+                const maskBlurRadius = 3;   // Subtle mask blur for better edge detection
+                const maskCanvas = document.createElement('canvas');
+                maskCanvas.width = offCanvas.width;
+                maskCanvas.height = offCanvas.height;
+                const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+                
+                // Draw the original mask
+                const maskImgData = new ImageData(personMask.data, personMask.width, personMask.height);
+                maskCtx.putImageData(maskImgData, 0, 0);
+                
+                // Apply two-pass blur for better edge quality
+                // First pass: subtle blur for noise reduction
+                maskCtx.filter = `blur(${maskBlurRadius}px)`;
+                maskCtx.drawImage(maskCanvas, 0, 0);
+                
+                // Second pass: edge-specific blur
+                maskCtx.filter = `blur(${edgeBlurRadius}px)`;
+                maskCtx.globalCompositeOperation = 'source-over';
+                maskCtx.drawImage(maskCanvas, 0, 0);
+                maskCtx.filter = 'none';
+                
+                // Get the blurred mask data
+                const blurredMask = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+                
+                // Apply the blurred mask
+                const frame = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+                for (let i = 0; i < frame.data.length; i += 4) {
+                    frame.data[i + 3] = blurredMask.data[i + 3];
+                }
+                
+                // Draw the masked person with smooth edges
+                offCtx.putImageData(frame, 0, 0);
+                
+                // Draw the background
+                offCtx.globalCompositeOperation = 'destination-over';
+                const color = window.selectedBgColor || '#222';
+                
+                if (color === '#222') {
+                    // Create blurred background effect for black/dark mode
+                    const bgCanvas = document.createElement('canvas');
+                    bgCanvas.width = offCanvas.width;
+                    bgCanvas.height = offCanvas.height;
+                    const bgCtx = bgCanvas.getContext('2d');
+                    
+                    // Draw and blur the original video
+                    bgCtx.drawImage(video, 0, 0, bgCanvas.width, bgCanvas.height);
+                    bgCtx.filter = 'blur(20px) brightness(0.7)';
+                    bgCtx.drawImage(bgCanvas, 0, 0);
+                    
+                    // Draw the blurred background
+                    offCtx.drawImage(bgCanvas, 0, 0);
+                } else {
+                    // Use solid color for other background colors
+                    offCtx.fillStyle = color;
+                    offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+                }
+                offCtx.globalCompositeOperation = 'source-over';
+              } else {
+                // Just draw the video without effects
+                offCtx.drawImage(video, 0, 0);
+              }
+              
+              // Copy to main canvas
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(offCanvas, 0, 0);
+            } catch (error) {
+              console.error('[PREVIEW] Error in draw loop:', error);
+            } finally {
+              segmentationInProgress = false;
+            }
+            
+            requestAnimationFrame(drawBlurred);
+          }
+          
+          console.log('[PREVIEW] Starting draw loop');
+          // Set canvas size based on webcam resolution
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          offCanvas.width = canvas.width;
+          offCanvas.height = canvas.height;
+          offCanvas.width = canvas.width;
+          offCanvas.height = canvas.height;
+          
+          requestAnimationFrame(drawBlurred);
+        } catch (error) {
+          console.error('[PREVIEW] Setup error:', error);
+        }
+      })();
+      // Add blur enabled class for styling
+      function updateBlurStyle(enabled) {
+        document.body.classList.toggle('blur-enabled', enabled);
+      }
+
+      // Show/hide loading overlay
+      const loadingOverlay = document.querySelector('.loading-overlay');
+      
+      function showLoading() {
+        loadingOverlay.style.display = 'flex';
+      }
+      
+      function hideLoading() {
+        loadingOverlay.style.display = 'none';
+      }
+      
+      // Show loading when starting to load BodyPix
+      showLoading();
+      
+      // Hide loading when BodyPix is ready
+      window.addEventListener('load', () => {
+        if (bodyPixNet) {
+          hideLoading();
+        }
+      });
+      
+      // Hide loading after successful model load
+      const originalBodyPixLoad = bodyPix.load;
+      bodyPix.load = async function(...args) {
+        try {
+          const model = await originalBodyPixLoad.apply(this, args);
+          hideLoading();
+          return model;
+        } catch (error) {
+          hideLoading();
+          throw error;
+        }
+      };
+    </script>
+  </body>
+</html>

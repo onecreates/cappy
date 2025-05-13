@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cappy Screen & Webcam Recorder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="index.css" />
+    <style>
+      html, body {
+        min-width: 0;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        background: transparent !important;
+        width: fit-content;
+        height: fit-content;
+        overflow: hidden; /* Prevent scrollbars */
+      }
+      /* Remove the background overlay */
+      .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 0.3em;
+        animation: scaleIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+      }
+      .logo-img {
+        max-width: 90px;
+        width: 90px;
+        height: 90px;
+      }
+      .app-title {
+        text-align: center;
+        font-size: 1.45rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #fff;
+        margin-bottom: 0.8em;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        animation: fadeIn 0.5s ease-out;
+      }
+      .container {
+        width: 340px;
+        max-width: 340px;
+        min-width: 340px;
+        background: #232323;
+        border-radius: 18px;
+        padding: 0.7em 1.2em; /* Reduced padding */
+        box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+        margin: 0; /* Remove auto margin */
+        box-sizing: border-box;
+        overflow: visible !important;
+        position: relative;
+        animation: slideIn 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+      }
+      .is-selected {
+        outline: 2px solid #fff;
+        box-shadow: 0 0 0 2px #4c8cff;
+      }
+      .color-btn {
+        width: 2.2em;
+        height: 2.2em;
+        border: 2px solid #fff;
+        margin-right: 0.5em;
+        margin-bottom: 0.2em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        transition: all 0.2s ease;
+        opacity: 1;
+        border-radius: 12px;
+        cursor: pointer;
+        transform: scale(1);
+        position: relative;
+      }
+      .color-btn:focus, .color-btn:hover {
+        border: 2px solid #4c8cff;
+        box-shadow: 0 0 0 3px rgba(76,140,255,0.3);
+        opacity: 1.0;
+        transform: scale(1.1);
+      }
+      .color-btn.is-selected {
+        transform: scale(1.1);
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 3px rgba(29,233,182,0.4);
+      }
+      .color-btn::after {
+        content: '';
+        position: absolute;
+        top: -3px;
+        left: -3px;
+        right: -3px;
+        bottom: -3px;
+        border-radius: inherit;
+        background: transparent;
+        transition: background 0.2s ease;
+      }
+      .color-btn:hover::after {
+        background: rgba(255,255,255,0.1);
+      }
+      .color-btn.is-selected::before {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        font-size: 1.1em;
+      }
+      .columns.is-mobile {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.1em;
+        gap: 0.5em;
+        width: 100%;
+      }
+      .column.is-narrow {
+        flex: none;
+        padding: 0;
+        display: flex;
+        align-items: center;
+      }
+      .has-text-centered {
+        text-align: center;
+        margin-bottom: 0 !important; /* Override Bulma */
+      }
+      .button.is-primary, .button.is-danger {
+        width: 100%;
+        font-size: 1.1em;
+        border-radius: 1.2em;
+        margin-bottom: 0.4em;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateY(0);
+      }
+      .button.is-primary:hover, .button.is-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+      }
+      .button.is-primary:active, .button.is-danger:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      .button.is-primary {
+        background: linear-gradient(135deg, #1de9b6, #1bc9a6);
+        color: #232323;
+        border: none;
+        font-weight: 600;
+      }
+      .button.is-primary:hover {
+        background: linear-gradient(135deg, #21ffc7, #1dddb8);
+      }
+      .button.is-danger {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: #fff;
+        border: none;
+        font-weight: 600;
+      }
+      .button.is-danger:hover {
+        background: linear-gradient(135deg, #ff5242, #d4402f);
+      }
+      .content {
+        margin-top: 0.5em;
+        font-size: 0.98em;
+        margin-bottom: 0;
+        padding-bottom: 0;
+      }
+      #audioInputBtn {
+        min-width: 140px !important;
+        max-width: 220px;
+        width: 100%;
+        overflow: visible;
+        white-space: nowrap;
+        position: relative;
+        z-index: 20;
+        margin: 0.5rem 0;
+      }
+      #audioInputDropdown {
+        min-width: 140px;
+        max-width: 260px;
+        left: 0;
+        right: auto;
+        overflow-x: auto;
+        z-index: 9999;
+        background: #181818;
+        border: 2px solid #1de9b6;
+        color: #fff;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        max-height: 180px;
+        overflow-y: auto;
+      }
+      #audioInputDropdown div {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 220px;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.8); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      @keyframes slideIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      /* Checkbox and label styling */
+      .checkbox {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        padding: 0.4em 0.8em;
+        border-radius: 1.2em;
+        background: rgba(255,255,255,0.05);
+        transition: all 0.2s ease;
+      }
+      
+      .checkbox:hover {
+        background: rgba(255,255,255,0.08);
+        transform: translateY(-1px);
+      }
+      
+      .checkbox input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 1.2em;
+        height: 1.2em;
+        border: 2px solid rgba(255,255,255,0.5);
+        border-radius: 4px;
+        margin-right: 0.5em;
+        position: relative;
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+      
+      .checkbox input[type="checkbox"]:checked {
+        background: #1de9b6;
+        border-color: #1de9b6;
+      }
+      
+      .checkbox input[type="checkbox"]:checked::after {
+        content: '✓';
+        color: #232323;
+        font-size: 0.8em;
+        font-weight: bold;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+    </style>
+  </head>
+  <body class="has-background-dark has-text-light">
+    <div class="container">
+      <div class="logo-container">
+        <img src="../20250512_0950_Capybara Filmmaker Cartoon_simple_compose_01jv1bh6aaf3980pm19f1vc0za.png" alt="Cappybara Logo" class="logo-img">
+      </div>
+      <div class="app-title">cappy</div>
+
+      <!-- Recording Controls -->
+      <div class="control-section">
+        <div class="has-text-centered">      <button id="recordBtn" class="button is-primary is-small mr-2" style="min-width:130px; margin-bottom: 0.4rem;">
+          <span class="icon is-small"><i class="fas fa-record-vinyl"></i></span>
+          <span>Start Recording</span>
+        </button>
+        <button id="stopBtn" class="button is-danger is-small" style="display:none;min-width:130px; margin-bottom: 0.4rem;">
+            <span class="icon"><i class="fas fa-stop"></i></span>
+            <span>Stop Recording</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Background Controls -->    <div class="control-section" style="margin-bottom: 0.4rem;">
+      <div class="section-heading" style="color: #fff; font-size: 0.75rem; margin-bottom: 0.3rem;">Background Settings</div>
+        <div class="has-text-centered">
+          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 1rem; display: block;">
+            <input type="checkbox" id="blurBgToggle" class="mr-2">
+            Blur webcam background
+          </label>
+        </div>
+        <div class="has-text-centered">
+          <div style="display:flex;gap:0.8em;align-items:center;justify-content:center;margin-top: 0.5rem;">
+            <button class="button is-small is-rounded color-btn" style="background:#222;color:#fff;" data-bgcolor="#222" aria-label="Dark"></button>
+            <button class="button is-small is-rounded color-btn" style="background:#3498db;" data-bgcolor="#3498db" aria-label="Blue"></button>
+            <button class="button is-small is-rounded color-btn" style="background:#e74c3c;" data-bgcolor="#e74c3c" aria-label="Red"></button>
+            <button class="button is-small is-rounded color-btn" style="background:#27ae60;" data-bgcolor="#27ae60" aria-label="Green"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audio Settings -->
+      <div class="control-section" style="margin-bottom: 1.5rem;">
+        <div class="section-heading" style="color: #fff; font-size: 0.9rem; margin-bottom: 0.8rem;">Audio Source</div>
+        <div class="has-text-centered">
+          <div id="audioInputBtn" style="display:inline-flex;align-items:center;gap:0.5em;cursor:pointer;background:#232323;border-radius:1.5em;padding:0.35em 1.1em;box-shadow:0 2px 8px rgba(0,0,0,0.13);border:1.5px solid #444;min-width:140px;max-width:170px;position:relative;overflow:visible;">
+            <i class="fas fa-microphone" style="color:#fff;font-size:1.1em;"></i>
+            <span id="audioInputLabel" style="color:#fff;font-size:0.98em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;display:inline-block;vertical-align:middle;">Select Microphone</span>
+            <span id="audioInputBadge" style="background:#27ae60;color:#fff;font-size:0.85em;padding:0.1em 0.7em;border-radius:1em;margin-left:0.3em;">On</span>
+            <i class="fas fa-chevron-down" style="color:#aaa;font-size:0.9em;margin-left:0.3em;"></i>
+            <div id="audioInputDropdown" style="display:none;position:absolute;top:110%;left:0;width:100%;background:#232323;border:1.5px solid #444;border-radius:1em;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,0.18);min-width:140px;max-width:220px;overflow-x:auto;">
+              <!-- Device options will be injected here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content has-text-centered mt-2">
+        <span class="is-size-7 has-text-grey-light">Your recording will be saved as a .webm file after you stop.</span>
+      </div>
+    </div>
+    <script src="https://kit.fontawesome.com/7c8e6e4e2a.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
+    <script src="recorder.js"></script>
+    <script>
+      const blurToggle = document.getElementById('blurBgToggle');
+      if (!blurToggle) {
+        console.error('[Renderer] blurBgToggle not found in DOM');
+      } else {
+        blurToggle.addEventListener('change', () => {
+          const blurBgEnabled = blurToggle.checked;
+          if (window.electronAPI && window.electronAPI.sendSetBlur) {
+            window.electronAPI.sendSetBlur(blurBgEnabled);
+          } else {
+            console.error('[Renderer] window.electronAPI.sendSetBlur is not available');
+          }
+        });
+      }
+
+      async function getScreenStream() {
+        if (!window.electronDesktopCapturer || !window.electronDesktopCapturer.getSources) {
+          console.error('[Renderer] desktopCapturer is not available');
+          alert('desktopCapturer is not available. Make sure preload.js exposes it and webPreferences.preload is set.');
+          throw new Error('desktopCapturer is not available');
+        }
+        const sources = await window.electronDesktopCapturer.getSources({ 
+          types: ['screen', 'window'],
+          thumbnailSize: { width: 320, height: 180 },
+          fetchWindowIcons: true
+        });
+        const { source } = await new Promise((resolve, reject) => {
+          const overlay = document.createElement('div');
+          overlay.style.position = 'fixed';
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.width = '100vw';
+          overlay.style.height = '100vh';
+          overlay.style.background = 'rgba(0,0,0,0.75)';
+          overlay.style.display = 'flex';
+          overlay.style.alignItems = 'center';
+          overlay.style.justifyContent = 'center';
+          overlay.style.zIndex = '9999';
+          overlay.style.transition = 'background 0.2s';
+          const modal = document.createElement('div');
+          modal.style.background = '#222';
+          modal.style.borderRadius = '16px';
+          modal.style.padding = '32px 24px 24px 24px';
+          modal.style.boxShadow = '0 8px 32px rgba(0,0,0,0.4)';
+          modal.style.maxWidth = '90vw';
+          modal.style.maxHeight = '80vh';
+          modal.style.overflow = 'auto';
+          modal.style.position = 'relative';
+          const cancelBtn = document.createElement('button');
+          cancelBtn.innerText = '✕';
+          cancelBtn.title = 'Cancel';
+          cancelBtn.style.position = 'absolute';
+          cancelBtn.style.top = '12px';
+          cancelBtn.style.right = '16px';
+          cancelBtn.style.background = 'transparent';
+          cancelBtn.style.border = 'none';
+          cancelBtn.style.color = '#fff';
+          cancelBtn.style.fontSize = '1.5em';
+          cancelBtn.style.cursor = 'pointer';
+          cancelBtn.style.transition = 'color 0.2s';
+          cancelBtn.onmouseenter = () => cancelBtn.style.color = '#ff4c4c';
+          cancelBtn.onmouseleave = () => cancelBtn.style.color = '#fff';
+          cancelBtn.onclick = () => {
+            document.body.removeChild(overlay);
+            reject(new Error('User cancelled source selection'));
+          };
+          modal.appendChild(cancelBtn);
+          const title = document.createElement('h2');
+          title.innerText = 'Select a screen or window to record';
+          title.style.color = '#fff';
+          title.style.margin = '0 0 24px 0';
+          title.style.fontWeight = '600';
+          title.style.fontSize = '1.3em';
+          modal.appendChild(title);
+          const grid = document.createElement('div');
+          grid.style.display = 'grid';
+          grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(220px, 1fr))';
+          grid.style.gap = '20px';
+          grid.style.justifyItems = 'center';
+          grid.style.alignItems = 'center';
+          grid.style.marginBottom = '8px';
+          sources.forEach((src, i) => {
+            const card = document.createElement('button');
+            card.style.background = '#333';
+            card.style.border = '2px solid transparent';
+            card.style.borderRadius = '12px';
+            card.style.padding = '12px 8px 8px 8px';
+            card.style.display = 'flex';
+            card.style.flexDirection = 'column';
+            card.style.alignItems = 'center';
+            card.style.cursor = 'pointer';
+            card.style.transition = 'border 0.2s, box-shadow 0.2s';
+            card.style.outline = 'none';
+            card.onmouseenter = () => {
+              card.style.border = '2px solid #4c8cff';
+              card.style.boxShadow = '0 4px 16px rgba(76,140,255,0.15)';
+            };
+            card.onmouseleave = () => {
+              card.style.border = '2px solid transparent';
+              card.style.boxShadow = 'none';
+            };
+            card.setAttribute('data-idx', i);
+            const thumb = document.createElement('img');
+            thumb.src = src.thumbnail.toDataURL();
+            thumb.alt = src.name;
+            thumb.style.width = '200px';
+            thumb.style.height = '112px';
+            thumb.style.objectFit = 'cover';
+            thumb.style.borderRadius = '8px';
+            thumb.style.marginBottom = '10px';
+            card.appendChild(thumb);
+            const name = document.createElement('span');
+            name.innerText = src.name;
+            name.style.color = '#fff';
+            name.style.fontSize = '1em';
+            name.style.fontWeight = '500';
+            name.style.textAlign = 'center';
+            name.style.wordBreak = 'break-word';
+            card.appendChild(name);
+            card.onclick = () => {
+              document.body.removeChild(overlay);
+              resolve({ source: sources[i] });
+            };
+            grid.appendChild(card);
+          });
+          modal.appendChild(grid);
+          overlay.appendChild(modal);
+          document.body.appendChild(overlay);
+        });
+        if (!source) throw new Error('Screen/window selection cancelled.');
+        return {
+          screenStream: await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              mandatory: {
+                chromeMediaSource: 'desktop',
+                chromeMediaSourceId: source.id,
+                minWidth: 1280,
+                maxWidth: 4096,
+                minHeight: 720,
+                maxHeight: 2160
+              },
+              optional: [
+                { frameRate: { ideal: 30, max: 60 } },
+                { aspectRatio: 1.7777777778 }
+              ]
+            }
+          })
+        };
+      }
+
+      const recorder = new ScreenRecorder();
+      let progressBar = null;
+      let progressLabel = null;
+      let overlayPreview = null;
+      let isRecording = false;
+
+      function showProgressUI() {
+        if (!progressBar) {
+          progressBar = document.createElement('progress');
+          progressBar.id = 'record-progress';
+          progressBar.max = 100;
+          progressBar.value = 0;
+          progressBar.style.width = '100%';
+          progressBar.style.margin = '1em 0 0 0';
+          progressBar.style.height = '10px';
+          progressBar.style.display = 'block';
+          progressBar.style.background = '#232323';
+          progressBar.style.borderRadius = '8px';
+          document.querySelector('.container').appendChild(progressBar);
+        }
+        if (!progressLabel) {
+          progressLabel = document.createElement('div');
+          progressLabel.id = 'record-progress-label';
+          progressLabel.style.textAlign = 'center';
+          progressLabel.style.color = '#fff';
+          progressLabel.style.fontSize = '0.95em';
+          progressLabel.style.margin = '0.3em 0 0.5em 0';
+          document.querySelector('.container').appendChild(progressLabel);
+        }
+        progressBar.value = 0;
+        progressLabel.textContent = 'Recording...';
+      }
+
+      function hideProgressUI() {
+        if (progressBar) progressBar.remove();
+        if (progressLabel) progressLabel.remove();
+        progressBar = null;
+        progressLabel = null;
+      }
+
+      function showDownloadNotification() {
+        const notif = document.createElement('div');
+        notif.textContent = 'Download completed!';
+        notif.style.position = 'fixed';
+        notif.style.bottom = '32px';
+        notif.style.left = '50%';
+        notif.style.transform = 'translateX(-50%)';
+        notif.style.background = '#1de9b6';
+        notif.style.color = '#232323';
+        notif.style.fontWeight = 'bold';
+        notif.style.padding = '0.7em 2em';
+        notif.style.borderRadius = '1.5em';
+        notif.style.boxShadow = '0 2px 16px rgba(0,0,0,0.18)';
+        notif.style.zIndex = 99999;
+        notif.style.fontSize = '1.1em';
+        document.body.appendChild(notif);
+        setTimeout(() => notif.remove(), 3000);
+      }
+
+      function createOverlayPreview(videoEl) {
+        if (overlayPreview) overlayPreview.remove();
+        overlayPreview = document.createElement('video');
+        overlayPreview.srcObject = videoEl.srcObject;
+        overlayPreview.autoplay = true;
+        overlayPreview.muted = true;
+        overlayPreview.style.position = 'fixed';
+        overlayPreview.style.right = '32px';
+        overlayPreview.style.bottom = '32px';
+        overlayPreview.style.width = '220px';
+        overlayPreview.style.height = '124px';
+        overlayPreview.style.borderRadius = '12px';
+        overlayPreview.style.boxShadow = '0 4px 24px rgba(0,0,0,0.25)';
+        overlayPreview.style.zIndex = 9999;
+        overlayPreview.style.background = '#232323';
+        overlayPreview.style.border = '2px solid #1de9b6';
+        overlayPreview.style.pointerEvents = 'none';
+        document.body.appendChild(overlayPreview);
+      }
+
+      function removeOverlayPreview() {
+        if (overlayPreview) overlayPreview.remove();
+        overlayPreview = null;
+      }
+
+      let blurBgEnabled = false;
+      let bodyPixNet = null;
+      let selectedBgColor = '#222';
+      let selectedAudioDeviceId = '';
+      let audioDevices = [];
+
+      const colorButtons = document.querySelectorAll('[data-bgcolor]');
+      console.log('[Renderer] Found colorButtons:', colorButtons.length);
+      colorButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedBgColor = btn.getAttribute('data-bgcolor');
+          colorButtons.forEach(b => b.classList.remove('is-selected'));
+          btn.classList.add('is-selected');
+          if (window.electronAPI && window.electronAPI.setBgColor) {
+            window.electronAPI.setBgColor(selectedBgColor);
+          } else {
+            console.error('[Renderer] window.electronAPI.setBgColor is not available');
+          }
+        });
+      });
+
+      async function populateAudioInputs() {
+        const btn = document.getElementById('audioInputBtn');
+        const label = document.getElementById('audioInputLabel');
+        const badge = document.getElementById('audioInputBadge');
+        const dropdown = document.getElementById('audioInputDropdown');
+        audioDevices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+        dropdown.innerHTML = '';
+        if (audioDevices.length === 0) {
+          label.textContent = 'No mic';
+          badge.textContent = 'Off';
+          badge.style.background = '#e74c3c';
+          btn.style.opacity = 0.7;
+          btn.style.pointerEvents = 'none';
+          selectedAudioDeviceId = '';
+          return;
+        }
+        btn.style.opacity = 1;
+        btn.style.pointerEvents = 'auto';
+        audioDevices.forEach((device, idx) => {
+          const opt = document.createElement('div');
+          opt.textContent = device.label || `Microphone (${device.deviceId})`;
+          opt.title = device.label || `Microphone (${device.deviceId})`;
+          opt.style.padding = '0.5em 1em';
+          opt.style.cursor = 'pointer';
+          opt.style.color = '#fff';
+          opt.style.fontSize = '0.97em';
+          opt.style.borderBottom = idx < audioDevices.length-1 ? '1px solid #333' : 'none';
+          opt.style.whiteSpace = 'nowrap';
+          opt.style.overflow = 'hidden';
+          opt.style.textOverflow = 'ellipsis';
+          opt.onmouseenter = () => opt.style.background = '#333';
+          opt.onmouseleave = () => opt.style.background = 'transparent';
+          opt.onclick = (e) => {
+            e.stopPropagation();
+            selectedAudioDeviceId = device.deviceId;
+            label.textContent = device.label || `Microphone (${device.deviceId})`;
+            badge.textContent = 'On';
+            badge.style.background = '#27ae60';
+            dropdown.style.display = 'none';
+          };
+          dropdown.appendChild(opt);
+        });
+        selectedAudioDeviceId = audioDevices[0].deviceId;
+        label.textContent = audioDevices[0].label || `Microphone (${audioDevices[0].deviceId})`;
+        badge.textContent = 'On';
+        badge.style.background = '#27ae60';
+      }
+
+      window.addEventListener('DOMContentLoaded', populateAudioInputs);
+
+      function positionAudioDropdown() {
+        const btn = document.getElementById('audioInputBtn');
+        const dropdown = document.getElementById('audioInputDropdown');
+        if (!btn || !dropdown) return;
+        dropdown.style.display = 'block';
+        dropdown.style.visibility = 'hidden';
+        dropdown.style.top = '110%';
+        dropdown.style.bottom = '';
+        setTimeout(() => {
+          const rect = dropdown.getBoundingClientRect();
+          const btnRect = btn.getBoundingClientRect();
+          const winH = window.innerHeight;
+          if (btnRect.bottom + rect.height > winH - 10) {
+            dropdown.style.top = '';
+            dropdown.style.bottom = '110%';
+            dropdown.style.maxHeight = `${btnRect.top - 30}px`;
+          } else {
+            dropdown.style.top = '110%';
+            dropdown.style.bottom = '';
+            dropdown.style.maxHeight = '180px';
+          }
+          dropdown.style.visibility = 'visible';
+        }, 0);
+      }
+
+      document.getElementById('audioInputBtn').onclick = function(e) {
+        e.stopPropagation();
+        const dropdown = document.getElementById('audioInputDropdown');
+        if (dropdown.style.display === 'block') {
+          dropdown.style.display = 'none';
+        } else {
+          positionAudioDropdown();
+        }
+      };
+
+      document.body.onclick = function(e) {
+        const dropdown = document.getElementById('audioInputDropdown');
+        if (dropdown && dropdown.style.display === 'block') {
+          dropdown.style.display = 'none';
+        }
+      };
+
+      window.addEventListener('resize', () => {
+        const dropdown = document.getElementById('audioInputDropdown');
+        if (dropdown && dropdown.style.display === 'block') {
+          positionAudioDropdown();
+        }
+      });
+
+      let selectedScreen = null;
+      let selectedAudio = null;
+
+      document.getElementById('recordBtn').onclick = async function() {
+        try {
+          // Hide record button and show loading state
+          this.style.display = 'none';
+            
+          // Select screen and start recording immediately
+          await recorder.selectAndStartRecording(selectedAudioDeviceId, (elapsed) => {
+            const progressBar = document.getElementById('record-progress');
+            const progressLabel = document.getElementById('record-progress-label');
+            if (progressBar) progressBar.value = Math.min(100, elapsed * 2);
+            if (progressLabel) progressLabel.textContent = `Recording... ${elapsed}s`;
+          });
+
+          // Show stop button and hide UI
+          document.getElementById('stopBtn').style.display = 'inline';
+            
+          // Notify main process and hide window
+          window.electronWindow.startRecording();
+          setTimeout(() => window.electronWindow.hide(), 500);
+
+          // Show progress UI
+          showProgressUI();
+          isRecording = true;
+        } catch (err) {
+          console.error('[Renderer] Error:', err);
+          if (err.message !== 'Selection cancelled') {
+            alert('Error: ' + err.message);
+          }
+          // Reset UI
+          this.style.display = 'inline';
+        }
+      };
+
+      document.getElementById('stopBtn').onclick = function() {
+        this.style.display = 'none';
+        document.getElementById('recordBtn').style.display = 'inline';
+        isRecording = false;
+        hideProgressUI();
+        removeOverlayPreview();
+        // Show the main window again and notify main process
+        window.electronWindow.stopRecording();
+        window.electronWindow.show();
+        recorder.stopRecording();
+      };
+
+      // Listen for tray stop recording event
+      const { ipcRenderer } = require('electron');
+      if (window && window.addEventListener) {
+        window.addEventListener('DOMContentLoaded', () => {
+          if (window.electronAPI) {
+            ipcRenderer.on('tray-stop-recording', () => {
+              const stopBtn = document.getElementById('stopBtn');
+              if (stopBtn && stopBtn.style.display !== 'none') {
+                stopBtn.click();
+              }
+            });
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
