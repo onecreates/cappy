@@ -9,6 +9,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sendSetBlur: (enabled) => {
     ipcRenderer.send('set-blur', enabled);
   },
+  // For toggling webcam
+  toggleWebcam: (enabled) => {
+    ipcRenderer.send('toggle-webcam', enabled);
+  },
+  // For toggling webcam
+  toggleWebcam: (enabled) => {
+    ipcRenderer.send('toggle-webcam', enabled);
+  },
   // For previewWindow: Receive set-blur event from main process
   onSetBlur: (callback) => {
     ipcRenderer.on('set-blur', (event, enabled) => callback(enabled));
@@ -25,5 +33,6 @@ contextBridge.exposeInMainWorld('electronWindow', {
   hide: () => ipcRenderer.send('main-window-hide'),
   show: () => ipcRenderer.send('main-window-show'),
   startRecording: () => ipcRenderer.send('start-recording'),
-  stopRecording: () => ipcRenderer.send('stop-recording')
+  stopRecording: () => ipcRenderer.send('stop-recording'),
+  toggleWebcam: (enabled) => ipcRenderer.send('toggle-webcam', enabled)
 });

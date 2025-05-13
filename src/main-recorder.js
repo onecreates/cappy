@@ -2,6 +2,23 @@
 document.addEventListener('DOMContentLoaded', () => {
     const recorder = new ScreenRecorder();
     let selectedAudioDeviceId = '';
+    let webcamEnabled = true;
+
+    // Handle webcam toggle
+    const webcamToggle = document.getElementById('enableWebcamToggle');
+    if (webcamToggle) {
+        webcamToggle.addEventListener('change', () => {
+            webcamEnabled = webcamToggle.checked;
+            window.electronWindow.toggleWebcam(webcamEnabled);
+            // Enable/disable webcam related controls
+            const blurToggle = document.getElementById('blurBgToggle');
+            const bgControls = document.querySelector('.control-section');
+            if (blurToggle && bgControls) {
+                blurToggle.disabled = !webcamEnabled;
+                bgControls.style.opacity = webcamEnabled ? '1' : '0.5';
+            }
+        });
+    }
 
     // Start button click - Select screen and start recording
     document.getElementById('recordBtn').onclick = async function() {

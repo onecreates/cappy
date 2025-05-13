@@ -276,7 +276,19 @@
         </div>
       </div>
 
-      <!-- Background Controls -->    <div class="control-section" style="margin-bottom: 0.4rem;">
+      <!-- Recording Options -->
+      <div class="control-section" style="margin-bottom: 0.4rem;">
+        <div class="section-heading" style="color: #fff; font-size: 0.75rem; margin-bottom: 0.3rem;">Recording Options</div>
+        <div class="has-text-centered">
+          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 0.5rem; display: block;">
+            <input type="checkbox" id="enableWebcamToggle" class="mr-2" checked onchange="window.electronAPI.toggleWebcam(this.checked)">
+            Enable webcam preview
+          </label>
+        </div>
+      </div>
+
+      <!-- Background Controls -->    
+      <div class="control-section" style="margin-bottom: 0.4rem;">
       <div class="section-heading" style="color: #fff; font-size: 0.75rem; margin-bottom: 0.3rem;">Background Settings</div>
         <div class="has-text-centered">
           <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 1rem; display: block;">

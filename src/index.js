@@ -1,14 +1,35 @@
 const { app, BrowserWindow, screen, desktopCapturer, ipcMain, session } = require('electron');
 const path = require('node:path');
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+let shouldShowWebcam = true;
+let previewWindow = null;
+let mainWindow = null;
+let isRecording = false; // Track recording state
+
 if (require('electron-squirrel-startup')) {
   app.quit();
+  return;
 }
 
-let previewWindow; // Keep a global reference
-let mainWindow;    // Add a global reference for mainWindow
-let isRecording = false; // Track recording state
+// this should be placed at top of main.js to handle setup events quickly
+if (process.platform === 'win32') {
+  const setupEvents = require('./windows-installer');
+  if (setupEvents.handleSquirrelEvent()) {
+    // squirrel event handled and app will exit in 1000ms, so don't do anything else
+    return;
+  }
+}
+
+// Handle webcam toggle IPC
+ipcMain.on('toggle-webcam', (event, enabled) => {
+  shouldShowWebcam = enabled;
+  if (enabled && !previewWindow) {
+    createWebcamPreview();
+  } else if (!enabled && previewWindow) {
+    previewWindow.destroy();
+    previewWindow = null;
+  }
+});
 
 // Enable screen capture features and hardware acceleration
 app.commandLine.appendSwitch('enable-features', 'MediaStream');
@@ -221,11 +242,10 @@ ipcMain.on('main-window-show', () => {
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
   try {
-    console.log('[Main] App is ready');
     createWindow();
-    console.log('[Main] createWindow called');
-    createWebcamPreview();
-    console.log('[Main] createWebcamPreview called');
+    if (shouldShowWebcam) {
+      createWebcamPreview();
+    }
     // Make sure the windows are visible and focused
     if (mainWindow) {
       mainWindow.show();
@@ -238,9 +258,35 @@ app.whenReady().then(() => {
   }
 });
 
-// Quit when all windows are closed, except on macOS
+// Force close all windows and quit
+function forceQuit() {
+  if (mainWindow) {
+    mainWindow.destroy();
+    mainWindow = null;
+  }
+  if (previewWindow) {
+    previewWindow.destroy();
+    previewWindow = null;
+  }
+}
+
+// Quit when all windows are closed
 app.on('window-all-closed', () => {
+  forceQuit();
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// Handle quit events
+app.on('before-quit', () => {
+  forceQuit();
+});
+
+// Handle second-instance
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
   }
 });
