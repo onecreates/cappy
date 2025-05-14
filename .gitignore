@@ -36,6 +36,13 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Build output
+dist/
+out/
+build/
+*.exe
+*.asar
+
 # TypeScript v1 declaration files
 typings/
 
