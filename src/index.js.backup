@@ -1,0 +1,16 @@
+// Original index.js backup
+const { app, BrowserWindow, screen, desktopCapturer, ipcMain, session } = require('electron');
+const path = require('node:path');
+
+let shouldShowWebcam = true;
+let previewWindow = null;
+let mainWindow = null;
+let isRecording = false;
+let isBackgroundEnabled = false;
+
+if (require('electron-squirrel-startup')) {
+  app.quit();
+  return;
+}
+
+// Rest of the original file...

@@ -1,5 +1,19 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+console.log('[Preload] Initializing preload script');
+
+// Enable logging from renderer to main process
+const sendToMain = (channel, ...args) => {
+    ipcRenderer.send('console', channel, ...args);
+};
+
+contextBridge.exposeInMainWorld('console', {
+    log: (...args) => sendToMain('log', ...args),
+    error: (...args) => sendToMain('error', ...args),
+    warn: (...args) => sendToMain('warn', ...args),
+    info: (...args) => sendToMain('info', ...args)
+});
+
 contextBridge.exposeInMainWorld('electronDesktopCapturer', {
   getSources: (opts) => ipcRenderer.invoke('DESKTOP_CAPTURER_GET_SOURCES', opts)
 });
@@ -38,4 +52,10 @@ contextBridge.exposeInMainWorld('electronWindow', {
   startRecording: () => ipcRenderer.send('start-recording'),
   stopRecording: () => ipcRenderer.send('stop-recording'),
   toggleWebcam: (enabled) => ipcRenderer.send('toggle-webcam', enabled)
+});
+
+// Add window management APIs
+contextBridge.exposeInMainWorld('electron', {
+  setIgnoreMouseEvents: (...args) => ipcRenderer.invoke('set-ignore-mouse-events', ...args),
+  resetPosition: () => ipcRenderer.invoke('reset-webcam-position'),
 });

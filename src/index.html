@@ -9,14 +9,17 @@
     <link rel="stylesheet" href="custom.css" />
     <style>
       html, body {
-        min-width: 0;
-        min-height: 0;
+        width: 100%;
+        height: 100%;
         margin: 0;
         padding: 0;
-        background: transparent !important;
-        width: fit-content;
-        height: fit-content;
-        overflow: hidden; /* Prevent scrollbars */
+        background: #232323 !important;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
       }
       /* Remove the background overlay */
       .logo-container {
@@ -27,34 +30,48 @@
         animation: scaleIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
       }
       .logo-img {
-        max-width: 90px;
-        width: 90px;
-        height: 90px;
+        max-width: 70px;
+        width: 70px;
+        height: 70px;
       }
       .app-title {
         text-align: center;
-        font-size: 1.45rem;
+        font-size: 1.2rem;
         font-weight: 800;
         letter-spacing: 0.08em;
         color: #fff;
-        margin-bottom: 0.8em;
+        margin-bottom: 0.6em;
         text-shadow: 0 2px 4px rgba(0,0,0,0.2);
         animation: fadeIn 0.5s ease-out;
       }
       .container {
-        width: 280px;
-        padding: 0.8rem;
-        max-width: 340px;
+        width: 100vw;
+        height: 100vh;
+        padding: 0;
+        margin: 0;
+        max-width: none;
         min-width: 340px;
         background: #232323;
-        border-radius: 18px;
-        padding: 0.7em 1.2em; /* Reduced padding */
-        box-shadow: 0 4px 32px rgba(0,0,0,0.18);
-        margin: 0; /* Remove auto margin */
+        border-radius: 0;
+        box-shadow: none;
         box-sizing: border-box;
         overflow: visible !important;
         position: relative;
         animation: slideIn 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+      }
+      
+      .content-wrapper {
+        width: 340px;
+        padding: 0.8em;
+        margin-top: 0;
+        box-sizing: border-box;
+        background: rgba(0,0,0,0.2);
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.1);
       }
 
       .columns.is-mobile {
@@ -79,7 +96,7 @@
       .button.is-primary, .button.is-danger {
         width: 100%;
         font-size: 1.1em;
-        border-radius: 1.2em;
+        border-radius: 25px;
         margin-bottom: 0.4em;
         transition: all 0.2s ease-in-out;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -126,20 +143,23 @@
         position: relative;
         z-index: 20;
         margin: 0.5rem 0;
+        border-radius: 8px;
       }
       #audioInputDropdown {
         min-width: 140px;
         max-width: 260px;
-        left: 0;
-        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
         overflow-x: auto;
         z-index: 9999;
         background: #181818;
         border: 2px solid #1de9b6;
+        border-radius: 8px;
         color: #fff;
         box-shadow: 0 8px 32px rgba(0,0,0,0.35);
         max-height: 180px;
         overflow-y: auto;
+        margin-top: 0.5em;
       }
       #audioInputDropdown div {
         white-space: nowrap;
@@ -166,7 +186,7 @@
         cursor: pointer;
         user-select: none;
         padding: 0.4em 0.8em;
-        border-radius: 1.2em;
+        border-radius: 8px;
         background: rgba(255,255,255,0.05);
         transition: all 0.2s ease;
       }
@@ -182,7 +202,7 @@
         width: 1.2em;
         height: 1.2em;
         border: 2px solid rgba(255,255,255,0.5);
-        border-radius: 4px;
+        border-radius: 6px;
         margin-right: 0.5em;
         position: relative;
         transition: all 0.2s ease;
@@ -207,82 +227,39 @@
       [v-cloak] {
         display: none;
       }
+      
+      .control-section {
+        background: rgba(255,255,255,0.03);
+        border-radius: 12px;
+        padding: 0.6em;
+        margin-bottom: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+
+      .section-heading {
+        color: #fff;
+        font-size: 0.75rem;
+        margin-bottom: 0.4rem;
+        opacity: 0.8;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+      }
+
+      .content.has-text-centered.mt-2 {
+        background: rgba(255,255,255,0.03);
+        border-radius: 12px;
+        padding: 0.8em;
+        margin-top: 0.5rem !important;
+        border: 1px solid rgba(255,255,255,0.1);
+      }
     </style>
-  </head>
-  <body class="has-background-dark has-text-light">
-    <div class="container">
-      <div class="logo-container">
-        <img src="../20250512_0950_Capybara Filmmaker Cartoon_simple_compose_01jv1bh6aaf3980pm19f1vc0za.png" alt="Cappybara Logo" class="logo-img">
-      </div>
-      <div class="app-title">Froomie Screen Recorder</div>
-
-      <!-- Recording Controls -->
-      <div class="control-section">
-        <div class="has-text-centered">      <button id="recordBtn" class="button is-primary is-small mr-2" style="min-width:130px; margin-bottom: 0.4rem;">
-          <span class="icon is-small"><i class="fas fa-record-vinyl"></i></span>
-          <span>Start Recording</span>
-        </button>
-        <button id="stopBtn" class="button is-danger is-small" style="display:none;min-width:130px; margin-bottom: 0.4rem;">
-            <span class="icon"><i class="fas fa-stop"></i></span>
-            <span>Stop Recording</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Recording Options -->
-      <div class="control-section" style="margin-bottom: 0.4rem;">
-        <div class="section-heading" style="color: #fff; font-size: 0.75rem; margin-bottom: 0.3rem;">Recording Options</div>
-        <div class="has-text-centered">
-          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 0.5rem; display: block;">
-            <input type="checkbox" id="enableWebcamToggle" class="mr-2" checked onchange="window.electronAPI.toggleWebcam(this.checked)">
-            Enable webcam preview
-          </label>
-        </div>
-      </div>
-
-      <!-- Background Controls -->    
-      <div class="control-section" style="margin-bottom: 0.4rem;">
-        <div class="section-heading" style="color: #fff; font-size: 0.75rem; margin-bottom: 0.3rem;">Background Settings</div>
-        <div class="has-text-centered">
-          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 0.5rem; display: block;">
-            <input type="checkbox" id="blurBgToggle" class="mr-2" onchange="window.electronAPI.sendSetBlur(this.checked)">
-            Blur Background
-          </label>
-          <div class="color-presets" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
-            <button class="color-btn" data-bgcolor="#232323" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #232323; cursor: pointer; position: relative;"></button>
-            <button class="color-btn" data-bgcolor="#1a6b54" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #1a6b54; cursor: pointer; position: relative;"></button>
-            <button class="color-btn" data-bgcolor="#1e4b94" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #1e4b94; cursor: pointer; position: relative;"></button>
-            <button class="color-btn" data-bgcolor="#7c3aed" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #7c3aed; cursor: pointer; position: relative;"></button>
-          </div>
-        </div>
-      </div>
-          <div class="control-section" style="margin-bottom: 1.5rem;">
-        <div class="section-heading" style="color: #fff; font-size: 0.9rem; margin-bottom: 0.8rem;">Audio Source</div>
-        <div class="has-text-centered">
-          <div id="audioInputBtn" style="display:inline-flex;align-items:center;gap:0.5em;cursor:pointer;background:#232323;border-radius:1.5em;padding:0.35em 1.1em;box-shadow:0 2px 8px rgba(0,0,0,0.13);border:1.5px solid #444;min-width:140px;max-width:170px;position:relative;overflow:visible;">
-            <i class="fas fa-microphone" style="color:#fff;font-size:1.1em;"></i>
-            <span id="audioInputLabel" style="color:#fff;font-size:0.98em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;display:inline-block;vertical-align:middle;">Select Microphone</span>
-            <span id="audioInputBadge" style="background:#27ae60;color:#fff;font-size:0.85em;padding:0.1em 0.7em;border-radius:1em;margin-left:0.3em;">On</span>
-            <i class="fas fa-chevron-down" style="color:#aaa;font-size:0.9em;margin-left:0.3em;"></i>
-            <div id="audioInputDropdown" style="display:none;position:absolute;top:110%;left:0;width:100%;background:#232323;border:1.5px solid #444;border-radius:1em;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,0.18);min-width:140px;max-width:220px;overflow-x:auto;">
-              <!-- Device options will be injected here -->
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="content has-text-centered mt-2">
-        <span class="is-size-7 has-text-grey-light">Your recording will be saved as a .webm file after you stop.</span>
-      </div>
-    </div>
     <script src="https://kit.fontawesome.com/7c8e6e4e2a.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
     <script src="recorder.js"></script>
     <script src="audioInput.js"></script>
     <script>
-      // Create recorder instance
-      const recorder = new ScreenRecorder();
+      let recorder = null;
       let progressBar = null;
       let progressLabel = null;
       let overlayPreview = null;
@@ -290,7 +267,7 @@
       let selectedScreen = null;
       let blurBgEnabled = false;
       let bodyPixNet = null;
-      // UI update functions
+
       function showProgressUI() {
         if (!progressBar) {
           progressBar = document.createElement('progress');
@@ -298,7 +275,7 @@
           progressBar.max = 100;
           progressBar.value = 0;
           progressBar.style.width = '100%';
-          document.querySelector('.settings-section').appendChild(progressBar);
+          document.querySelector('.control-section').appendChild(progressBar);
         }
         if (!progressLabel) {
           progressLabel = document.createElement('div');
@@ -307,7 +284,7 @@
           progressLabel.style.color = '#fff';
           progressLabel.style.fontSize = '0.9em';
           progressLabel.style.margin = '0.5em 0';
-          document.querySelector('.settings-section').appendChild(progressLabel);
+          document.querySelector('.control-section').appendChild(progressLabel);
         }
         progressBar.value = 0;
         progressLabel.textContent = 'Recording...';
@@ -320,107 +297,162 @@
         progressLabel = null;
       }
 
-      function showDownloadNotification() {
-        const notif = document.createElement('div');
-        notif.textContent = 'Download completed!';
-        notif.style.position = 'fixed';
-        notif.style.bottom = '32px';
-        notif.style.left = '50%';
-        notif.style.transform = 'translateX(-50%)';
-        notif.style.background = '#00d888';
-        notif.style.color = '#000';
-        notif.style.padding = '0.7em 2em';
-        notif.style.borderRadius = '4px';
-        notif.style.fontSize = '0.9em';
-        document.body.appendChild(notif);
-        setTimeout(() => notif.remove(), 3000);
-      }
-
-      function createOverlayPreview(videoEl) {
-        // ...existing code...
-      }
-
-      function removeOverlayPreview() {
-        // ...existing code...
-      }
-
-      // Recording control handlers
-      document.getElementById('recordBtn').onclick = async function() {
+      // Initialize when DOM is ready
+      window.addEventListener('load', () => {
         try {
-          this.style.display = 'none';
-          
-          // Get current audio device from the audio manager
-          const audioDeviceId = window.audioInputManager ? 
-            window.audioInputManager.getCurrentDeviceId() : null;
-          
-          // Start recording
-          await recorder.selectAndStartRecording(audioDeviceId, (elapsed) => {
-            const progressBar = document.getElementById('record-progress');
-            const progressLabel = document.getElementById('record-progress-label');
-            if (progressBar) progressBar.value = Math.min(100, elapsed * 2);
-            if (progressLabel) progressLabel.textContent = `Recording... ${elapsed}s`;
-          });
+          console.log('[Main] Initializing app...');
+          recorder = new ScreenRecorder();
+          console.log('[Main] Successfully created ScreenRecorder instance');
 
-          document.getElementById('stopBtn').style.display = 'inline';
-          window.electronWindow.startRecording();
-          setTimeout(() => window.electronWindow.hide(), 500);
-          showProgressUI();
-          isRecording = true;
-        } catch (err) {
-          console.error('[Renderer] Error:', err);
-          if (err.message !== 'Selection cancelled') {
-            alert('Error: ' + err.message);
+          const recordBtn = document.getElementById('recordBtn');
+          const stopBtn = document.getElementById('stopBtn');
+          const webcamToggle = document.getElementById('enableWebcamToggle');
+          const blurToggle = document.getElementById('blurBgToggle');
+          const colorButtons = document.querySelectorAll('.color-btn');
+
+          if (!recordBtn || !stopBtn) {
+            console.error('[Main] Record or stop buttons not found!');
+            return;
           }
-          this.style.display = 'inline';
-        }
-      };
 
-      document.getElementById('stopBtn').onclick = function() {
-        this.style.display = 'none';
-        document.getElementById('recordBtn').style.display = 'inline';
-        isRecording = false;
-        hideProgressUI();
-        removeOverlayPreview();
-        window.electronWindow.stopRecording();
-        window.electronWindow.show();
-        recorder.stopRecording();
-      };
+          // Record button click handler
+          recordBtn.addEventListener('click', async () => {
+            try {
+              console.log('[Main] Record button clicked');
+              recordBtn.style.display = 'none';
+              
+              const audioDeviceId = window.audioInputManager ? 
+                window.audioInputManager.getCurrentDeviceId() : null;
+              console.log('[Main] Using audio device:', audioDeviceId);
+              
+              console.log('[Main] Starting recording...');
+              await recorder.selectAndStartRecording(audioDeviceId, (elapsed) => {
+                if (progressBar) progressBar.value = Math.min(100, elapsed * 2);
+                if (progressLabel) progressLabel.textContent = `Recording... ${elapsed}s`;
+              });
 
-
-
-      document.addEventListener('DOMContentLoaded', () => {
-        const webcamToggle = document.getElementById('enableWebcamToggle');
-        const blurToggle = document.getElementById('blurBgToggle');
-        const colorButtons = document.querySelectorAll('.color-btn');
-
-        // Handle blur toggle
-        if (blurToggle) {
-          blurToggle.addEventListener('change', (e) => {
-            const isEnabled = e.target.checked;
-            window.electronAPI.sendSetBlur(isEnabled);
-          });
-        }
-
-        // Set up color buttons
-        colorButtons.forEach(btn => {
-          btn.addEventListener('click', () => {
-            colorButtons.forEach(b => b.style.borderColor = 'rgba(255,255,255,0.2)');
-            btn.style.borderColor = '#fff';
-            const color = btn.getAttribute('data-bgcolor');
-            window.electronAPI.setBgColor(color);
-          });
-        });
-
-        // Handle tray stop recording event
-        if (window.electronAPI) {
-          ipcRenderer.on('tray-stop-recording', () => {
-            const stopBtn = document.getElementById('stopBtn');
-            if (stopBtn && stopBtn.style.display !== 'none') {
-              stopBtn.click();
+              stopBtn.style.display = 'inline';
+              window.electronWindow.startRecording();
+              setTimeout(() => window.electronWindow.hide(), 500);
+              showProgressUI();
+              isRecording = true;
+            } catch (err) {
+              console.error('[Main] Recording error:', err);
+              if (err.message !== 'Selection cancelled') {
+                alert('Error: ' + err.message);
+              }
+              recordBtn.style.display = 'inline';
             }
           });
+
+          // Stop button click handler
+          stopBtn.addEventListener('click', () => {
+            console.log('[Main] Stop button clicked');
+            stopBtn.style.display = 'none';
+            recordBtn.style.display = 'inline';
+            isRecording = false;
+            hideProgressUI();
+            window.electronWindow.stopRecording();
+            window.electronWindow.show();
+            recorder.stopRecording();
+          });
+
+          // Background controls
+          if (blurToggle) {
+            blurToggle.addEventListener('change', (e) => {
+              const isEnabled = e.target.checked;
+              window.electronAPI.sendSetBlur(isEnabled);
+            });
+          }
+
+          // Color buttons
+          colorButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+              colorButtons.forEach(b => b.style.borderColor = 'rgba(255,255,255,0.2)');
+              btn.style.borderColor = '#fff';
+              const color = btn.getAttribute('data-bgcolor');
+              window.electronAPI.setBgColor(color);
+            });
+          });
+
+          console.log('[Main] App initialization complete');
+        } catch (err) {
+          console.error('[Main] Failed to initialize:', err);
         }
       });
     </script>
+  </head>
+  <body class="has-background-dark has-text-light">
+    <div class="container">
+      <div class="content-wrapper">
+        <div class="logo-container">
+          <img src="../20250512_0950_Capybara Filmmaker Cartoon_simple_compose_01jv1bh6aaf3980pm19f1vc0za.png" alt="Cappybara Logo" class="logo-img">
+        </div>
+        <div class="app-title">Cappy</div>
+
+      <!-- Recording Controls -->
+      <div class="control-section">
+        <div class="has-text-centered" style="display: flex; justify-content: center;">
+          <button id="recordBtn" class="button is-primary is-small" style="min-width:130px; margin: 0 auto;">
+            <span class="icon is-small"><i class="fas fa-record-vinyl"></i></span>
+            <span>Start Recording</span>
+          </button>
+          <button id="stopBtn" class="button is-danger is-small" style="display:none; min-width:130px; margin: 0 auto;">
+            <span class="icon"><i class="fas fa-stop"></i></span>
+            <span>Stop Recording</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Recording Options -->
+      <div class="control-section">
+        <div class="section-heading">Recording Options</div>
+        <div class="has-text-centered">
+          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 0.5rem; display: block;">
+            <input type="checkbox" id="enableWebcamToggle" class="mr-2" checked onchange="window.electronAPI.toggleWebcam(this.checked)">
+            Enable webcam preview
+          </label>
+        </div>
+      </div>
+
+      <!-- Background Controls -->    
+      <div class="control-section">
+        <div class="section-heading">Background Settings</div>
+        <div class="has-text-centered">
+          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 0.5rem; display: block;">
+            <input type="checkbox" id="blurBgToggle" class="mr-2" onchange="window.electronAPI.sendSetBlur(this.checked)">
+            Blur Background
+          </label>
+          <div class="color-presets" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; flex-wrap: wrap;">
+            <button class="color-btn" data-bgcolor="#FFFFFF" style="width: 24px; height: 24px; border-radius: 8px; border: 2px solid rgba(0,0,0,0.2); background: #FFFFFF; cursor: pointer; position: relative;" title="Natural"></button>
+            <button class="color-btn" data-bgcolor="#00FFFF" style="width: 24px; height: 24px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.2); background: #00FFFF; cursor: pointer; position: relative;" title="Cyan"></button>
+            <button class="color-btn" data-bgcolor="#FF1493" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #FF1493; cursor: pointer; position: relative;" title="Hot Pink"></button>
+            <button class="color-btn" data-bgcolor="#39FF14" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #39FF14; cursor: pointer; position: relative;" title="Neon Green"></button>
+            <button class="color-btn" data-bgcolor="#FF3131" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #FF3131; cursor: pointer; position: relative;" title="Neon Red"></button>
+            <button class="color-btn" data-bgcolor="#FFD700" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #FFD700; cursor: pointer; position: relative;" title="Gold"></button>
+            <button class="color-btn" data-bgcolor="#9D00FF" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #9D00FF; cursor: pointer; position: relative;" title="Electric Purple"></button>
+          </div>
+        </div>
+      </div>
+          <div class="control-section">
+        <div class="section-heading">Audio Source</div>
+        <div class="has-text-centered">
+          <div id="audioInputBtn" style="display:inline-flex;align-items:center;gap:0.3em;cursor:pointer;background:#232323;border-radius:8px;padding:0.4em 0.8em;box-shadow:0 2px 8px rgba(0,0,0,0.13);border:1.5px solid #444;min-width:120px;max-width:200px;position:relative;overflow:visible;margin:0 auto;">
+            <i class="fas fa-microphone" style="color:#fff;font-size:0.9em;"></i>
+            <span id="audioInputLabel" style="color:#fff;font-size:0.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;display:inline-block;vertical-align:middle;">Select Microphone</span>
+            <span id="audioInputBadge" style="background:#27ae60;color:#fff;font-size:0.75em;padding:0.15em 0.6em;border-radius:4px;margin-left:0.3em;">On</span>
+            <i class="fas fa-chevron-down" style="color:#aaa;font-size:0.8em;margin-left:0.3em;"></i>
+            <div id="audioInputDropdown" style="display:none;position:absolute;top:110%;left:0;width:100%;background:#232323;border:1.5px solid #444;border-radius:1em;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,0.18);min-width:140px;max-width:220px;overflow-x:auto;">
+              <!-- Device options will be injected here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content has-text-centered mt-2">
+        <span class="is-size-7 has-text-grey-light">Your recording will be saved as a .webm file after you stop.</span>
+      </div>
+      </div>
+    </div>
   </body>
 </html>

@@ -9,8 +9,8 @@
         margin: 0;
         overflow: hidden;
         background: transparent;
-        -webkit-app-region: drag;
         animation: fadeIn 0.3s ease-out;
+        user-select: none;
       }
       
       #webcam-container {
@@ -18,17 +18,24 @@
         width: 230px;
         height: 230px;
         background: transparent;
-        clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+        clip-path: path('M115 0C118 0 121 1 123 3L208 43C211 45 213 48 213 52V178C213 182 211 185 208 187L123 227C121 229 118 230 115 230C112 230 109 229 107 227L22 187C19 185 17 182 17 178V52C17 48 19 45 22 43L107 3C109 1 112 0 115 0Z');
         -webkit-app-region: drag;
+        cursor: move;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      #webcam-container:active {
+        cursor: grabbing;
       }
 
       #webcam-canvas {
-        clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
         width: 100%;
         height: 100%;
         transform-origin: center;
         transition: transform 0.3s ease;
         object-fit: cover;
+        clip-path: path('M115 0C118 0 121 1 123 3L208 43C211 45 213 48 213 52V178C213 182 211 185 208 187L123 227C121 229 118 230 115 230C112 230 109 229 107 227L22 187C19 185 17 182 17 178V52C17 48 19 45 22 43L107 3C109 1 112 0 115 0Z');
       }
 
       .preview-container {
@@ -73,7 +80,7 @@
         z-index: 1000;
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
-        clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+        clip-path: path('M115 0C118 0 121 1 123 3L208 43C211 45 213 48 213 52V178C213 182 211 185 208 187L123 227C121 229 118 230 115 230C112 230 109 229 107 227L22 187C19 185 17 182 17 178V52C17 48 19 45 22 43L107 3C109 1 112 0 115 0Z');
       }
 
       .loading-spinner {
@@ -122,6 +129,8 @@
       window.selectedBgColor = '#222';
       window.blurStrength = 12; // Default blur strength
       let bodyPixNet = null;
+      let modelLoadRetries = 0;
+      const MAX_RETRIES = 3;
       let isReady = false;
       let segmentationInProgress = false;
       let currentStream = null;
@@ -132,8 +141,12 @@
 
       // Clean up webcam resources
       async function cleanupWebcam() {
-        if (isCleaningUp) return;
+        if (isCleaningUp) {
+          console.log('[PREVIEW] Cleanup already in progress...');
+          return;
+        }
         isCleaningUp = true;
+        console.log('[PREVIEW] Starting cleanup...');
         
         try {
           if (currentStream) {
@@ -184,6 +197,12 @@
       });
 
       async function setupWebcam() {
+        if (modelLoadRetries >= MAX_RETRIES) {
+          document.querySelector('.loading-text').textContent = 'Failed to initialize. Please refresh the page.';
+          return;
+        }
+        modelLoadRetries++;
+        
         try {
           const video = document.getElementById('webcam');
           const canvas = document.getElementById('webcam-canvas');
@@ -194,14 +213,21 @@
           
           const constraints = {
             video: {
-              width: { ideal: 460 }, // Double size for better quality
-              height: { ideal: 460 },
-              aspectRatio: 1,
-              frameRate: { max: 30 }
+              width: 460,
+              height: 460,
+              frameRate: 30
             }
           };
           
-          currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+          console.log('[PREVIEW] Requesting webcam access...');
+          try {
+            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+            console.log('[PREVIEW] Webcam access granted');
+          } catch (err) {
+            console.error('[PREVIEW] Webcam access error:', err.name, err.message);
+            document.querySelector('.loading-text').textContent = 'Please allow camera access and refresh';
+            throw err;
+          }
           video.srcObject = currentStream;
           
           if (DEBUG_MODE) {
@@ -210,9 +236,23 @@
             debugVideo.style.display = 'block';
           }
 
-          await new Promise((resolve) => {
+          await new Promise((resolve, reject) => {
             video.onloadedmetadata = () => {
-              video.play().then(resolve);
+              console.log('[PREVIEW] Video metadata loaded');
+              video.play()
+                .then(() => {
+                  console.log('[PREVIEW] Video playback started');
+                  resolve();
+                })
+                .catch(err => {
+                  console.error('[PREVIEW] Video playback error:', err);
+                  reject(err);
+                });
+            };
+            
+            video.onerror = (err) => {
+              console.error('[PREVIEW] Video error:', err);
+              reject(new Error('Failed to load video stream'));
             };
           });
 
@@ -222,6 +262,7 @@
           offCanvas.height = video.videoHeight;
           offCtx = offCanvas.getContext('2d', { alpha: true, willReadFrequently: true });            // Initialize BodyPix with optimized settings for real-time performance
           try {
+            console.log('[PREVIEW] Loading BodyPix model...');
             bodyPixNet = await bodyPix.load({
               architecture: 'MobileNetV1',
               outputStride: 16,
@@ -230,13 +271,18 @@
             });
             
             console.log('[PREVIEW] BodyPix model loaded successfully');
+            // Only hide loading overlay after model is loaded
+            document.querySelector('.loading-overlay').style.display = 'none';
+            isReady = true;
           } catch (err) {
             console.error('[PREVIEW] BodyPix loading error:', err);
             document.querySelector('.loading-text').textContent = 'Error loading background effects.';
+            // Retry loading the model after a delay
+            setTimeout(() => {
+              console.log('[PREVIEW] Retrying BodyPix model load...');
+              setupWebcam().catch(console.error);
+            }, 3000);
           }
-
-          document.querySelector('.loading-overlay').style.display = 'none';
-          isReady = true;
           
           // Start frame drawing
           requestAnimationFrame(drawFrame);
@@ -247,15 +293,22 @@
           document.querySelector('.loading-text').textContent = 'Error accessing webcam. Please check permissions.';
           throw err;
         }
-      }
-
-      async function drawFrame(timestamp) {
+      }          async function drawFrame(timestamp) {
         const video = document.getElementById('webcam');
         const canvas = document.getElementById('webcam-canvas');
         
         if (!video || !video.videoWidth || !mainCtx || !offCtx) {
-          requestAnimationFrame(drawFrame);
+          if (!isCleaningUp) {
+            console.log('[PREVIEW] Waiting for video initialization...');
+            requestAnimationFrame(drawFrame);
+          }
           return;
+        }
+        
+        // Handle case when bodyPixNet failed to load but webcam is working
+        if (!bodyPixNet && !document.querySelector('.loading-overlay').style.display === 'none') {
+          // Still draw the webcam feed without effects
+          mainCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
         }
         
         // Frame rate control
@@ -423,8 +476,54 @@
         }
       });
 
+      // Ensure mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        document.querySelector('.loading-text').textContent = 'Camera access not supported in this browser';
+        console.error('[PREVIEW] getUserMedia not supported');
+        return;
+      }
+
       // Start webcam setup
-      setupWebcam().catch(console.error);
+      setupWebcam().catch(err => {
+        console.error('[PREVIEW] Setup failed:', err);
+        document.querySelector('.loading-text').textContent = 'Camera initialization failed. Try refreshing.';
+      });
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('webcam-container');
+        let isDragging = false;
+        
+        // Handle mousedown to begin dragging
+        container.addEventListener('mousedown', () => {
+          isDragging = true;
+          window.electron.setIgnoreMouseEvents(false);
+        });
+        
+        // Handle mouseup to end dragging
+        document.addEventListener('mouseup', () => {
+          isDragging = false;
+          window.electron.setIgnoreMouseEvents(true, { forward: true });
+        });
+        
+        // Handle mouse movement for drag state
+        container.addEventListener('mousemove', () => {
+          if (!isDragging) {
+            window.electron.setIgnoreMouseEvents(false);
+          }
+        });
+        
+        container.addEventListener('mouseleave', () => {
+          if (!isDragging) {
+            window.electron.setIgnoreMouseEvents(true, { forward: true });
+          }
+        });
+
+        // Double click to reset position
+        container.addEventListener('dblclick', () => {
+          window.electron.resetPosition();
+        });
+      });
     </script>
   </body>
 </html>

@@ -10,21 +10,30 @@ class ScreenRecorder {
         this.combinedStream = null;
         this.progressInterval = null;
         this.onProgressUpdate = null;
-    }
-
-    async selectAndStartRecording(audioDeviceId, onProgress) {
+    }    async selectAndStartRecording(audioDeviceId, onProgress) {
+        console.log('[Recorder] Starting selectAndStartRecording with audioDeviceId:', audioDeviceId);
         if (!window.electronDesktopCapturer) {
+            console.error('[Recorder] Desktop capturer not available');
             throw new Error('Desktop capturer not available');
         }
 
         // Clear any existing streams
         this.cleanup();
+        console.log('[Recorder] Cleaned up existing streams');
 
-        const sources = await window.electronDesktopCapturer.getSources({ 
-            types: ['screen', 'window'],
-            thumbnailSize: { width: 320, height: 180 },
-            fetchWindowIcons: true
-        });
+        let sources;
+        try {
+            console.log('[Recorder] Getting desktop sources...');
+            sources = await window.electronDesktopCapturer.getSources({ 
+                types: ['screen', 'window'],
+                thumbnailSize: { width: 320, height: 180 },
+                fetchWindowIcons: true
+            });
+            console.log('[Recorder] Got sources:', sources.length);
+        } catch (err) {
+            console.error('[Recorder] Error getting sources:', err);
+            throw new Error('Failed to get screen sources: ' + err.message);
+        }
 
         return new Promise((resolve, reject) => {
             const overlay = document.createElement('div');
@@ -75,18 +84,60 @@ class ScreenRecorder {
                     document.body.removeChild(overlay);
                     reject(new Error('Selection cancelled'));
                 }, 300);
-            };
-
-            const title = document.createElement('h2');
-            title.innerText = 'Click to start recording';
+            };            const title = document.createElement('h2');
+            title.innerText = 'Select Window to Record';
             title.style.color = '#fff';
-            title.style.marginBottom = '24px';
+            title.style.marginBottom = '16px';
             title.style.textAlign = 'center';
+              const subtitle = document.createElement('p');
+            subtitle.innerText = 'Choose a specific window or record all windows';
+            subtitle.style.color = 'rgba(255,255,255,0.7)';
+            subtitle.style.fontSize = '14px';
+            subtitle.style.marginBottom = '16px';
+            subtitle.style.textAlign = 'center';
+
+            // Option for keeping files
+            const keepFilesContainer = document.createElement('div');
+            keepFilesContainer.style.marginBottom = '24px';
+            keepFilesContainer.style.textAlign = 'center';
+
+            const keepFilesLabel = document.createElement('label');
+            keepFilesLabel.style.color = '#fff';
+            keepFilesLabel.style.display = 'flex';
+            keepFilesLabel.style.alignItems = 'center';
+            keepFilesLabel.style.justifyContent = 'center';
+            keepFilesLabel.style.gap = '8px';
+            keepFilesLabel.style.cursor = 'pointer';
+
+            const keepFilesCheckbox = document.createElement('input');
+            keepFilesCheckbox.type = 'checkbox';
+            keepFilesCheckbox.checked = true;
+            keepFilesCheckbox.style.cursor = 'pointer';
+
+            const keepFilesText = document.createTextNode('Keep files after recording');
+            keepFilesLabel.appendChild(keepFilesCheckbox);
+            keepFilesLabel.appendChild(keepFilesText);
+            keepFilesContainer.appendChild(keepFilesLabel);
 
             const grid = document.createElement('div');
             grid.style.display = 'grid';
             grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(280px, 1fr))';
             grid.style.gap = '16px';
+            grid.style.margin = '16px 0';
+            
+            // Keep all windows button
+            const keepAllBtn = document.createElement('button');
+            keepAllBtn.textContent = 'Record All Windows';
+            keepAllBtn.style.background = '#1de9b6';
+            keepAllBtn.style.color = '#232323';
+            keepAllBtn.style.border = 'none';
+            keepAllBtn.style.padding = '12px 24px';
+            keepAllBtn.style.borderRadius = '8px';
+            keepAllBtn.style.cursor = 'pointer';
+            keepAllBtn.style.fontWeight = 'bold';
+            keepAllBtn.style.marginBottom = '16px';
+            keepAllBtn.style.width = '100%';
+            keepAllBtn.onclick = () => startRecording(sources.find(s => s.id === 'screen:0:0'));
 
             const startRecording = async (source) => {
                 // Show loading state
@@ -107,20 +158,23 @@ class ScreenRecorder {
                 loadingOverlay.appendChild(loadingText);
                 modal.appendChild(loadingOverlay);
 
-                try {
-                    const constraints = {
-                        audio: false,
-                        video: {
-                            mandatory: {
-                                chromeMediaSource: 'desktop',
-                                chromeMediaSourceId: source.id
-                            }
-                        }
-                    };
+        try {
+            console.log('[Recorder] Setting up constraints for source:', source.id);
+            const constraints = {
+                audio: false,
+                video: {
+                    mandatory: {
+                        chromeMediaSource: 'desktop',
+                        chromeMediaSourceId: source.id
+                    }
+                }
+            };
 
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    this.screenStream = stream;
-                    this.selectedSource = source;
+            console.log('[Recorder] Attempting to get screen stream with constraints:', JSON.stringify(constraints));
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            console.log('[Recorder] Screen stream obtained successfully');
+            this.screenStream = stream;
+            this.selectedSource = source;
 
                     // Start recording
                     await this.startRecording(audioDeviceId, onProgress);
@@ -177,23 +231,28 @@ class ScreenRecorder {
 
                 card.appendChild(thumb);
                 card.appendChild(name);
-                grid.appendChild(card);
-            });
+                grid.appendChild(card);            });
 
             modal.appendChild(closeBtn);
             modal.appendChild(title);
+            modal.appendChild(subtitle);
+            modal.appendChild(keepFilesContainer);
+            modal.appendChild(keepAllBtn);
             modal.appendChild(grid);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
         });
     }    async startRecording(audioDeviceId, onProgress) {
+        console.log('[Recorder] Starting recording with audioDeviceId:', audioDeviceId);
         if (!this.screenStream) {
+            console.error('[Recorder] No screen stream available');
             throw new Error('No screen selected. Please select a screen first.');
         }
         
         // Get audio if device ID is provided
         if (audioDeviceId) {
             try {
+                console.log('[Recorder] Attempting to access audio device:', audioDeviceId);
                 this.audioStream = await navigator.mediaDevices.getUserMedia({
                     audio: { 
                         deviceId: { exact: audioDeviceId },
@@ -203,21 +262,29 @@ class ScreenRecorder {
                     },
                     video: false
                 });
+                console.log('[Recorder] Audio stream obtained successfully');
             } catch (err) {
-                console.error('Error accessing audio:', err);
+                console.error('[Recorder] Error accessing audio:', err);
                 throw new Error(`Could not access microphone: ${err.message}`);
             }
-        }
-
-        // Combine streams
+        }        // Combine streams
+        console.log('[Recorder] Combining streams');
         const tracks = [...this.screenStream.getTracks()];
+        console.log('[Recorder] Screen tracks:', tracks.length);
+        
         if (this.audioStream) {
-            tracks.push(...this.audioStream.getAudioTracks());
+            const audioTracks = this.audioStream.getAudioTracks();
+            console.log('[Recorder] Audio tracks:', audioTracks.length);
+            tracks.push(...audioTracks);
         }
 
-        this.combinedStream = new MediaStream(tracks);
-        this.mediaRecorder = new MediaRecorder(this.combinedStream);
-        this.recordedChunks = [];
+        try {
+            console.log('[Recorder] Creating MediaStream with tracks:', tracks.length);
+            this.combinedStream = new MediaStream(tracks);
+            console.log('[Recorder] Creating MediaRecorder');
+            this.mediaRecorder = new MediaRecorder(this.combinedStream);
+            this.recordedChunks = [];
+            console.log('[Recorder] MediaRecorder created successfully');
         
         // Set up recording progress tracking
         let startTime = Date.now();
@@ -251,28 +318,31 @@ class ScreenRecorder {
         if (this.mediaRecorder && this.isRecording) {
             this.mediaRecorder.stop();
         }
-    }
-
-    cleanup() {
-        // Clear progress tracking
-        if (this.progressInterval) {
-            clearInterval(this.progressInterval);
-            this.progressInterval = null;
-        }
-        
-        // Properly stop all media tracks
-        const stopTracks = (stream) => {
-            if (stream) {
-                const tracks = stream.getTracks();
-                tracks.forEach(track => {
-                    try {
-                        track.stop();
-                    } catch (err) {
-                        console.error(`Error stopping track:`, err);
-                    }
-                });
+    }    cleanup() {
+        try {
+            console.log('[Recorder] Starting cleanup');
+            // Clear progress tracking
+            if (this.progressInterval) {
+                console.log('[Recorder] Clearing progress interval');
+                clearInterval(this.progressInterval);
+                this.progressInterval = null;
             }
-        };
+            
+            // Properly stop all media tracks
+            const stopTracks = (stream) => {
+                if (stream) {
+                    const tracks = stream.getTracks();
+                    console.log(`[Recorder] Stopping ${tracks.length} tracks for stream`);
+                    tracks.forEach(track => {
+                        try {
+                            track.stop();
+                            console.log('[Recorder] Stopped track:', track.kind);
+                        } catch (err) {
+                            console.error(`[Recorder] Error stopping track:`, err);
+                        }
+                    });
+                }
+            };
 
         stopTracks(this.screenStream);
         stopTracks(this.audioStream);
@@ -285,21 +355,34 @@ class ScreenRecorder {
         this.recordedChunks = [];
         this.selectedSource = null;
         this.isRecording = false;
-    }
-
-    saveRecording(blob) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `recording-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.webm`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            this.showNotification('Recording saved!');
-        }, 100);
+        console.log('[Recorder] Cleanup completed');
+    }    saveRecording(blob) {
+        console.log('[Recorder] Saving recording, blob size:', blob.size);
+        try {
+            // Check if we should save the file
+            const keepFilesCheckbox = document.querySelector('input[type="checkbox"]');
+            if (!keepFilesCheckbox || keepFilesCheckbox.checked) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `recording-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    this.showNotification('Recording saved!');
+                    console.log('[Recorder] Recording saved successfully');
+                }, 100);
+            } else {
+                console.log('[Recorder] File not saved as per user preference');
+                this.showNotification('Recording completed! (File not saved)');
+            }
+        } catch (err) {
+            console.error('[Recorder] Error saving recording:', err);
+            this.showNotification('Error saving recording!');
+        }
     }
 
     showNotification(message) {
