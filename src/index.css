@@ -1,259 +1,248 @@
+/* Base styles */
 html, body {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
-}
-
-html {
   background: transparent !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Arial, sans-serif;
+  color: #fff;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
-  margin: 0;
-  max-width: none;
-  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
   background: transparent !important;
 }
 
-video {
-  display: block;
-  width: 100vw;
-  height: 100vh;
-  object-fit: cover;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: black;
-}
-
-.control-group {
-  margin-bottom: 1.2rem;
-}
-
-.sound-selection {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-}
-
-.sound-selection label {
-  display: block;
-  color: #fff;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-}
-
-.color-menu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1rem 0;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
+/* Main container */
+.container {
+  width: 280px;
+  background: rgba(35, 35, 35, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 12px;
-}
-
-.button {
-  margin: 0.5rem 0;
-}
-
-select {
-  width: 100%;
-  padding: 0.5rem;
-  margin-bottom: 1rem;
-  border-radius: 8px;
-  background: #333;
-  color: #fff;
-  border: 1px solid #444;
-}
-
-select:focus {
-  outline: none;
-  border-color: #4c8cff;
-  box-shadow: 0 0 0 2px rgba(76,140,255,0.3);
-}
-
-.section-label {
-  color: #fff;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-  opacity: 0.9;
-}
-
-.control-section {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem !important;
-  transition: all 0.2s ease;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-}
-
-.control-section:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.section-heading {
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-  opacity: 0.8;
-  letter-spacing: 0.02em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.checkbox {
-  margin: 0.2rem 0;
-  display: block;
-  font-size: 0.8em;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.3rem 0.5rem;
-  border-radius: 6px;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-}
-
-#audioInputBtn {
-  margin: 0.2rem auto;
-  width: 100%;
-  max-width: 220px;
-  transition: all 0.2s ease;
-  padding: 0.2em 0.6em;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.8rem;
   box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
+    0 4px 24px -1px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  margin: 0 auto;
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#audioInputBtn:hover {
-  border-color: #1de9b6;
-  box-shadow: 0 2px 12px rgba(29, 233, 182, 0.15);
-}
-
-.color-btn {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  width: 1.5em;
-  height: 1.5em;
-  margin: 0 0.2em;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.color-btn:hover {
-  transform: scale(1.15);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-}
-
-.control-section + .control-section {
-  margin-top: 0.5rem;
-}
-
-#recordBtn, #stopBtn {
-  transition: all 0.3s ease;
-}
-
-.app-title {
-  font-size: 1rem !important;
-  margin-bottom: 0.3em !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+/* Logo and title */
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.3rem;
 }
 
 .logo-img {
-  max-width: 55px !important;
-  width: 55px !important;
-  height: 55px !important;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
 }
 
-.logo-container {
-  margin-bottom: 0.1em;
+.app-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0.3rem 0 0.8rem;
+  opacity: 0.95;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.02em;
 }
 
-.button.is-primary, .button.is-danger {
+/* Controls */
+.control-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 0.4rem;
+  margin-bottom: 0.4rem;
+  -webkit-app-region: no-drag;
+}
+
+/* Color selection improvements */
+.color-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.4rem 0;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  padding: 0.4rem;
+}
+
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.color-label {
+  font-size: 0.75em;
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 55px;
+}
+
+.color-btn-group {
+  display: flex;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.color-btn {
+  width: 0.9em;
+  height: 0.9em;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.color-btn:hover {
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.color-btn.is-selected::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 0.6em;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+.custom-color {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.custom-color input[type="color"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 1.2em;
+  height: 1.2em;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  background: none;
+  cursor: pointer;
+}
+
+.custom-color input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.custom-color input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 1px;
+}
+
+.custom-color input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: 1px;
+}
+
+.color-presets {
+  display: grid;
+  grid-template-columns: repeat(6, 0.9em);
+  gap: 0.2rem;
+}
+
+/* Buttons and inputs */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6em 1.2em;
   font-size: 0.85em;
-  padding: 0.5em 0.8em;
-  height: auto !important;
-  margin-bottom: 0.2em;
+  font-weight: 500;
+  border-radius: 6px;
+  min-width: 120px;
+  margin: 0.3em 0.5em;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-app-region: no-drag;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .button.is-primary {
-  background: rgba(29, 233, 182, 0.9) !important;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: #00d888;
+  color: #000;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.2s ease;
-  box-shadow: 
-    0 4px 12px rgba(29, 233, 182, 0.2),
-    0 0 0 1px rgba(29, 233, 182, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 216, 136, 0.2),
+    0 0 0 1px rgba(0, 216, 136, 0.3);
 }
 
 .button.is-danger {
-  background: rgba(231, 76, 60, 0.9) !important;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: #ff4757;
+  color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 4px 12px rgba(231, 76, 60, 0.2),
-    0 0 0 1px rgba(231, 76, 60, 0.3);
+  box-shadow:
+    0 4px 12px rgba(255, 71, 87, 0.2),
+    0 0 0 1px rgba(255, 71, 87, 0.3);
 }
 
 .button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  filter: brightness(1.1);
 }
 
-#audioInputLabel {
-  font-size: 0.8em;
+/* Checkboxes and inputs */
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3em 0.5em;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  margin: 0.2rem 0;
+  font-size: 0.75em;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
 }
 
-.container {
-  padding: 0.4em 0.8em;
-  max-width: 300px !important;
-  min-width: 300px !important;
-  width: 300px !important;
-  background: rgba(35, 35, 35, 0.95) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 4px 24px -1px rgba(0, 0, 0, 0.2),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+select {
+  width: 100%;
+  padding: 0.3em 0.5em;
+  font-size: 0.75em;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.3rem;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
 }
 
-.content {
-  margin-top: 0.2em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+#audioInputBtn {
+  padding: 0.3em 0.5em;
+  font-size: 0.75em;
+  margin: 0.2rem 0;
+  width: auto;
+  min-width: 100px;
 }
 
-.content .is-size-7 {
-  font-size: 0.65rem !important;
-  opacity: 0.7;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-/* Make dropdowns more compact */
-#audioInputDropdown {
-  padding: 0.2rem 0;
-  background: rgba(35, 35, 35, 0.95);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-#audioInputDropdown div {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8em;
+.section-heading {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin-bottom: 0.3rem;
 }

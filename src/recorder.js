@@ -186,9 +186,7 @@ class ScreenRecorder {
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
         });
-    }
-
-    async startRecording(audioDeviceId, onProgress) {
+    }    async startRecording(audioDeviceId, onProgress) {
         if (!this.screenStream) {
             throw new Error('No screen selected. Please select a screen first.');
         }
@@ -197,11 +195,17 @@ class ScreenRecorder {
         if (audioDeviceId) {
             try {
                 this.audioStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { deviceId: { exact: audioDeviceId } },
+                    audio: { 
+                        deviceId: { exact: audioDeviceId },
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
                     video: false
                 });
             } catch (err) {
                 console.error('Error accessing audio:', err);
+                throw new Error(`Could not access microphone: ${err.message}`);
             }
         }
 
@@ -243,30 +247,38 @@ class ScreenRecorder {
 
         this.mediaRecorder.start();
         this.isRecording = true;
-    }
-
-    stopRecording() {
+    }    stopRecording() {
         if (this.mediaRecorder && this.isRecording) {
             this.mediaRecorder.stop();
         }
     }
 
     cleanup() {
+        // Clear progress tracking
         if (this.progressInterval) {
             clearInterval(this.progressInterval);
             this.progressInterval = null;
         }
         
-        if (this.screenStream) {
-            this.screenStream.getTracks().forEach(track => track.stop());
-        }
-        if (this.audioStream) {
-            this.audioStream.getTracks().forEach(track => track.stop());
-        }
-        if (this.combinedStream) {
-            this.combinedStream.getTracks().forEach(track => track.stop());
-        }
+        // Properly stop all media tracks
+        const stopTracks = (stream) => {
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => {
+                    try {
+                        track.stop();
+                    } catch (err) {
+                        console.error(`Error stopping track:`, err);
+                    }
+                });
+            }
+        };
 
+        stopTracks(this.screenStream);
+        stopTracks(this.audioStream);
+        stopTracks(this.combinedStream);
+
+        // Clear references
         this.screenStream = null;
         this.audioStream = null;
         this.combinedStream = null;
