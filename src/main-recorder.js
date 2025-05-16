@@ -2,14 +2,18 @@
 document.addEventListener('DOMContentLoaded', () => {
     const recorder = new ScreenRecorder();
     let selectedAudioDeviceId = '';
-    let webcamEnabled = true;
-
-    // Handle webcam toggle
-    const webcamToggle = document.getElementById('enableWebcamToggle');
+    let webcamEnabled = true;    // Handle webcam toggle - find whichever toggle exists for compatibility
+    const webcamToggle = document.getElementById('webcamToggle') || document.getElementById('enableWebcamToggle');
     if (webcamToggle) {
         webcamToggle.addEventListener('change', () => {
             webcamEnabled = webcamToggle.checked;
-            window.electronWindow.toggleWebcam(webcamEnabled);
+            // Use either API pattern that's available
+            if (window.electronWindow && window.electronWindow.toggleWebcam) {
+                window.electronWindow.toggleWebcam(webcamEnabled);
+            } else if (window.electronAPI && window.electronAPI.toggleWebcam) {
+                window.electronAPI.toggleWebcam(webcamEnabled);
+            }
+            
             // Enable/disable webcam related controls
             const blurToggle = document.getElementById('blurBgToggle');
             const bgControls = document.querySelector('.control-section');

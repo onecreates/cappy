@@ -148,8 +148,10 @@
       #audioInputDropdown {
         min-width: 140px;
         max-width: 260px;
+        position: fixed; /* Changed to fixed positioning */
         left: 50%;
-        transform: translateX(-50%);
+        top: 50%;
+        transform: translate(-50%, -50%); /* Center both horizontally and vertically */
         overflow-x: auto;
         z-index: 9999;
         background: #181818;
@@ -159,7 +161,7 @@
         box-shadow: 0 8px 32px rgba(0,0,0,0.35);
         max-height: 180px;
         overflow-y: auto;
-        margin-top: 0.5em;
+        /* margin-top removed as it's now centered */
       }
       #audioInputDropdown div {
         white-space: nowrap;
@@ -253,12 +255,207 @@
         border: 1px solid rgba(255,255,255,0.1);
       }
     </style>
+  </head>
+  <body class="has-background-dark has-text-light">
+    <div class="container">
+      <div class="content-wrapper">
+        <div class="logo-container">
+          <img src="../20250512_0950_Capybara Filmmaker Cartoon_simple_compose_01jv1bh6aaf3980pm19f1vc0za.png" alt="Cappybara Logo" class="logo-img">
+        </div>
+        <div class="app-title">Cappy</div>
+
+      <!-- Recording Controls -->
+      <div class="control-section">
+        <div class="has-text-centered" style="display: flex; justify-content: center;">
+          <button id="recordBtn" class="button is-primary is-small" style="min-width:130px; margin: 0 auto;">
+            <span class="icon is-small"><i class="fas fa-record-vinyl"></i></span>
+            <span>Start Recording</span>
+          </button>
+          <button id="stopBtn" class="button is-danger is-small" style="display:none; min-width:130px; margin: 0 auto;">
+            <span class="icon"><i class="fas fa-stop"></i></span>
+            <span>Stop Recording</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Recording Options -->
+      <div class="control-section">
+        <div class="section-heading">Recording Options</div>
+        <div class="has-text-centered" style="display: flex; flex-direction: column; gap: 0.8rem;">
+          <!-- Webcam toggle -->
+          <label class="checkbox" style="cursor: pointer; user-select: none; margin: 0 auto;">
+            <input type="checkbox" id="webcamToggle" checked style="margin-right: 6px;" onchange="window.electronAPI?.toggleWebcam(this.checked)">
+            <span><i class="fas fa-video" style="margin-right: 5px; color: #1de9b6;"></i>Show Webcam Preview</span>
+          </label>
+          
+          <!-- System audio toggle -->
+          <label class="checkbox" style="cursor: pointer; user-select: none; margin: 0 auto; background: rgba(255, 152, 0, 0.08); border: 1px solid rgba(255, 152, 0, 0.3);" title="Record sounds playing on your computer (music, videos, etc.)">
+            <input type="checkbox" id="systemAudioToggle" style="margin-right: 6px;">
+            <span><i class="fas fa-volume-up" style="margin-right: 5px; color: #FF9800;"></i>Record System Audio</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Background Controls -->    
+      <div class="control-section">
+        <div class="section-heading">Background Settings</div>
+        <div class="has-text-centered">
+          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 0.5rem; display: block;">
+            <input type="checkbox" id="blurBgToggle" class="mr-2" onchange="window.electronAPI?.sendSetBlur(this.checked)">
+            Blur Background
+          </label>
+          <div class="color-presets" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; flex-wrap: wrap;">
+            <button class="color-btn" data-bgcolor="#FFFFFF" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(0,0,0,0.2); background: #FFFFFF; cursor: pointer; position: relative;" title="Natural"></button>
+            <button class="color-btn" data-bgcolor="#00FFFF" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #00FFFF; cursor: pointer; position: relative;" title="Cyan"></button>
+            <button class="color-btn" data-bgcolor="#FF1493" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #FF1493; cursor: pointer; position: relative;" title="Hot Pink"></button>
+            <button class="color-btn" data-bgcolor="#39FF14" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #39FF14; cursor: pointer; position: relative;" title="Neon Green"></button>
+            <button class="color-btn" data-bgcolor="#FF3131" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #FF3131; cursor: pointer; position: relative;" title="Neon Red"></button>
+            <button class="color-btn" data-bgcolor="#FFD700" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #FFD700; cursor: pointer; position: relative;" title="Gold"></button>
+            <button class="color-btn" data-bgcolor="#9D00FF" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #9D00FF; cursor: pointer; position: relative;" title="Electric Purple"></button>
+          </div>
+        </div>
+      </div>
+          <div class="control-section">
+        <div class="section-heading">Audio Source</div>
+        <div class="has-text-centered">
+          <div id="audioInputBtn" style="display:inline-flex;align-items:center;gap:0.3em;cursor:pointer;background:#232323;border-radius:8px;padding:0.4em 0.8em;box-shadow:0 2px 8px rgba(0,0,0,0.13);border:1.5px solid #444;min-width:120px;max-width:200px;position:relative;overflow:visible;margin:0 auto;">
+            <i class="fas fa-microphone" style="color:#fff;font-size:0.9em;"></i>
+            <span id="audioInputLabel" style="color:#fff;font-size:0.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;display:inline-block;vertical-align:middle;">Select Microphone</span>
+            <span id="audioInputBadge" style="background:#27ae60;color:#fff;font-size:0.75em;padding:0.15em 0.6em;border-radius:4px;margin-left:0.3em;">On</span>
+            <i class="fas fa-chevron-down" style="color:#aaa;font-size:0.8em;margin-left:0.3em;"></i>
+          </div>
+        </div>
+        
+        <!-- Move audio dropdown outside the button for better positioning -->
+        <div id="audioInputDropdown" style="display:none;position:fixed;width:280px;background:#232323;border:2px solid #1de9b6;border-radius:1em;z-index:10000;box-shadow:0 8px 32px rgba(0,0,0,0.5);min-width:200px;max-width:300px;overflow-y:auto;max-height:180px;overflow-x:hidden;">
+          <!-- Device options will be injected here -->
+        </div>
+      </div>
+
+      <div class="content has-text-centered mt-2">
+        <span class="is-size-7 has-text-grey-light">Your recording will be saved as a .webm file after you stop.</span>
+        <div class="is-size-7 has-text-grey-light" style="margin-top:5px;font-style:italic;">
+          <i class="fas fa-info-circle" style="color:#1de9b6;"></i> System Audio recording requires browser permission.
+        </div>
+      </div>
+      </div> <!-- End of content-wrapper -->
+    </div> <!-- End of container -->
+    <!-- Move scripts to end of body to ensure preload APIs are available -->
     <script src="https://kit.fontawesome.com/7c8e6e4e2a.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
-    <script src="recorder.js"></script>
-    <script src="audioInput.js"></script>
     <script>
+      // Check for our diagnostic API
+      console.log('[Debug] window.diagAPI:', window.diagAPI);
+      console.log('[Debug] typeof window.diagAPI:', typeof window.diagAPI);
+      
+      // Debug logs to check Electron API injection
+      console.log('[Debug] window.electronAPI:', window.electronAPI);
+      console.log('[Debug] window.electronWindow:', window.electronWindow);
+      console.log('[Debug] typeof window.electronAPI:', typeof window.electronAPI);
+      console.log('[Debug] typeof window.electronWindow:', typeof window.electronWindow);
+
+      // Extra debug logs for troubleshooting preload issues
+      console.log('[Debug] window.location.href:', window.location.href);
+
+      // Dynamically load recorder.js and audioInput.js after checking for Electron APIs
+      function loadScripts() {
+        console.log('[Debug] Loading recorder.js and audioInput.js dynamically');
+        
+        // First check if Electron APIs are available, but don't block on them
+        // This allows the app to initialize even if some APIs aren't fully ready
+        if (typeof window.electronAPI === 'undefined' || typeof window.electronWindow === 'undefined') {
+          console.warn('[Debug] Some Electron APIs not available yet, but proceeding anyway');
+          // Still continue with script loading even if APIs aren't ready
+        } else {
+          console.log('[Debug] Electron APIs detected, proceeding with script loading');
+        }
+        
+        // Load recorder.js
+        const recorderScript = document.createElement('script');
+        recorderScript.src = 'recorder.js';
+        recorderScript.onload = function() {
+          console.log('[Debug] recorder.js loaded successfully');
+          
+          // Load system audio helper first
+          const systemAudioScript = document.createElement('script');
+          systemAudioScript.src = 'systemAudioHelper.js';
+          
+          systemAudioScript.onload = function() {
+            console.log('[Debug] systemAudioHelper.js loaded successfully');
+            
+            // Load enhanced system audio handler
+            const systemAudioHandlerScript = document.createElement('script');
+            systemAudioHandlerScript.src = 'systemAudioHandler.js';
+            
+            systemAudioHandlerScript.onload = function() {
+              console.log('[Debug] systemAudioHandler.js loaded successfully');
+              loadAudioInput();
+            };
+            
+            systemAudioHandlerScript.onerror = function(err) {
+              console.error('[Debug] Failed to load systemAudioHandler.js:', err);
+              console.warn('[Debug] Continuing without enhanced system audio handler');
+              loadAudioInput();
+            };
+            
+            document.body.appendChild(systemAudioHandlerScript);
+          };
+          
+          systemAudioScript.onerror = function(err) {
+            console.error('[Debug] Failed to load systemAudioHelper.js:', err);
+            console.warn('[Debug] Trying to load enhanced handler directly');
+            
+            // Try to load enhanced handler directly
+            const systemAudioHandlerScript = document.createElement('script');
+            systemAudioHandlerScript.src = 'systemAudioHandler.js';
+            
+            systemAudioHandlerScript.onload = function() {
+              console.log('[Debug] systemAudioHandler.js loaded successfully');
+              loadAudioInput();
+            };
+            
+            systemAudioHandlerScript.onerror = function(err) {
+              console.error('[Debug] Failed to load systemAudioHandler.js:', err);
+              console.warn('[Debug] Continuing without system audio support');
+              loadAudioInput();
+            };
+            
+            document.body.appendChild(systemAudioHandlerScript);
+          };
+          
+          document.body.appendChild(systemAudioScript);
+        };
+        
+        // Helper function to load audioInput.js
+        function loadAudioInput() {
+          // Continue loading audioInput.js
+          const audioScript = document.createElement('script');
+          audioScript.src = 'audioInput.js';
+          
+          audioScript.onload = function() {
+            console.log('[Debug] audioInput.js loaded successfully');
+            setTimeout(initApp, 200); // Add a small delay to ensure scripts are fully ready
+          };
+          
+          audioScript.onerror = function(err) {
+            console.error('[Debug] Failed to load audioInput.js:', err);
+            alert('Failed to load audioInput.js. Please restart the application.');
+          };
+          
+          document.body.appendChild(audioScript);
+        }
+        
+        recorderScript.onerror = function(err) {
+          console.error('[Debug] Failed to load recorder.js:', err);
+          alert('Failed to load recorder.js. Please restart the application.');
+        };
+        document.body.appendChild(recorderScript);
+      }
+      
+      // Start loading scripts after a minimal delay
+      setTimeout(loadScripts, 100);
+
       let recorder = null;
       let progressBar = null;
       let progressLabel = null;
@@ -268,6 +465,7 @@
       let blurBgEnabled = false;
       let bodyPixNet = null;
 
+      // Setup progress UI functions
       function showProgressUI() {
         if (!progressBar) {
           progressBar = document.createElement('progress');
@@ -297,8 +495,25 @@
         progressLabel = null;
       }
 
-      // Initialize when DOM is ready
-      window.addEventListener('load', () => {
+      // Initialize app with more graceful checks
+      let retryCount = 0;
+      const maxRetries = 5; // Increased max retries
+
+      function initApp() {
+        if (typeof window.ScreenRecorder === 'undefined') {
+          if (retryCount < maxRetries) {
+            console.log(`[Main] ScreenRecorder not loaded yet. Retry ${retryCount + 1}/${maxRetries} in 500ms...`);
+            retryCount++;
+            setTimeout(initApp, 500);
+            return; // Return without showing alert
+          } else {
+            console.error('[Main] Failed to load ScreenRecorder after retries.');
+            // Only show alert if user interacts with recording buttons
+            // No alert during initialization
+          }
+          return;
+        }
+
         try {
           console.log('[Main] Initializing app...');
           recorder = new ScreenRecorder();
@@ -306,7 +521,8 @@
 
           const recordBtn = document.getElementById('recordBtn');
           const stopBtn = document.getElementById('stopBtn');
-          const webcamToggle = document.getElementById('enableWebcamToggle');
+          // Find whichever webcam toggle exists in the document (backward compatibility)
+          const webcamToggle = document.getElementById('webcamToggle') || document.getElementById('enableWebcamToggle');
           const blurToggle = document.getElementById('blurBgToggle');
           const colorButtons = document.querySelectorAll('.color-btn');
 
@@ -315,144 +531,138 @@
             return;
           }
 
-          // Record button click handler
+          // Set up event handlers
           recordBtn.addEventListener('click', async () => {
             try {
               console.log('[Main] Record button clicked');
+              
+              // First check if recorder is properly initialized
+              if (!recorder || typeof recorder.selectAndStartRecording !== 'function') {
+                console.error('[Main] Recorder not properly initialized');
+                throw new Error('Recording system not ready. Please wait a moment and try again.');
+              }
+              
               recordBtn.style.display = 'none';
               
               const audioDeviceId = window.audioInputManager ? 
                 window.audioInputManager.getCurrentDeviceId() : null;
               console.log('[Main] Using audio device:', audioDeviceId);
               
+              // Check if system audio toggle is enabled
+              const systemAudioToggle = document.getElementById('systemAudioToggle');
+              const captureSystemAudio = systemAudioToggle && systemAudioToggle.checked;
+              console.log('[Main] Capture system audio:', captureSystemAudio);
+              
               console.log('[Main] Starting recording...');
-              await recorder.selectAndStartRecording(audioDeviceId, (elapsed) => {
-                if (progressBar) progressBar.value = Math.min(100, elapsed * 2);
-                if (progressLabel) progressLabel.textContent = `Recording... ${elapsed}s`;
-              });
+              // Start recording with audio options
+              await recorder.selectAndStartRecording(audioDeviceId, null, captureSystemAudio);
 
               stopBtn.style.display = 'inline';
-              window.electronWindow.startRecording();
-              setTimeout(() => window.electronWindow.hide(), 500);
-              showProgressUI();
+              // Trigger main process recording UI if supported
+              if (window.electronWindow && typeof window.electronWindow.startRecording === 'function') {
+                window.electronWindow.startRecording();
+              }
+              // Don't hide the main window after starting recording
+              // setTimeout(() => window.electronWindow?.hide(), 500); // REMOVED
               isRecording = true;
             } catch (err) {
               console.error('[Main] Recording error:', err);
-              if (err.message !== 'Selection cancelled') {
+              // Restore record button
+              recordBtn.style.display = 'inline';
+              // Handle unsupported screen capture fallback error
+              if (err.message.includes('Screen capture is not supported')) {
+                alert('Screen capture is not supported on this system.');
+              } else if (err.message !== 'Selection cancelled') {
                 alert('Error: ' + err.message);
               }
-              recordBtn.style.display = 'inline';
             }
           });
 
-          // Stop button click handler
           stopBtn.addEventListener('click', () => {
             console.log('[Main] Stop button clicked');
             stopBtn.style.display = 'none';
             recordBtn.style.display = 'inline';
             isRecording = false;
-            hideProgressUI();
-            window.electronWindow.stopRecording();
-            window.electronWindow.show();
+            window.electronWindow?.stopRecording();
+            window.electronWindow?.show();
             recorder.stopRecording();
           });
 
-          // Background controls
           if (blurToggle) {
             blurToggle.addEventListener('change', (e) => {
-              const isEnabled = e.target.checked;
-              window.electronAPI.sendSetBlur(isEnabled);
+              window.electronAPI?.sendSetBlur(e.target.checked);
             });
           }
 
-          // Color buttons
           colorButtons.forEach(btn => {
             btn.addEventListener('click', () => {
+              console.log('[Main] Color button clicked:', btn.getAttribute('data-bgcolor'));
+              
+              // Update visual selection
               colorButtons.forEach(b => b.style.borderColor = 'rgba(255,255,255,0.2)');
               btn.style.borderColor = '#fff';
-              const color = btn.getAttribute('data-bgcolor');
-              window.electronAPI.setBgColor(color);
+              
+              // FIXED: First ensure the blur toggle is checked
+              const blurToggle = document.getElementById('blurBgToggle');
+              if (blurToggle && !blurToggle.checked) {
+                console.log('[Main] Auto-enabling blur toggle for color background');
+                blurToggle.checked = true;
+                // Send blur enable event
+                if (window.electronAPI && typeof window.electronAPI.sendSetBlur === 'function') {
+                  window.electronAPI.sendSetBlur(true);
+                }
+              }
+              
+              // Make sure electronAPI is available and send the color
+              if (window.electronAPI && typeof window.electronAPI.setBgColor === 'function') {
+                const bgColor = btn.getAttribute('data-bgcolor');
+                console.log('[Main] Setting background color to:', bgColor);
+                window.electronAPI.setBgColor(bgColor);
+                
+                // FIXED: Add delay and send color again to ensure it's received
+                setTimeout(() => {
+                  console.log('[Main] Re-sending color to ensure delivery:', bgColor);
+                  window.electronAPI.setBgColor(bgColor);
+                }, 200);
+              } else {
+                console.error('[Main] Cannot set background color: electronAPI not available');
+              }
             });
           });
+
+          // Reset webcam position button handler
+          const resetWebcamPosBtn = document.getElementById('resetWebcamPos');
+          if (resetWebcamPosBtn) {
+            resetWebcamPosBtn.addEventListener('click', () => {
+              console.log('[Main] Reset Webcam Position button clicked');
+              
+              // Try both methods to ensure compatibility
+              if (window.electronAPI) {
+                // First try the dedicated method if available
+                if (typeof window.electronAPI.resetWebcamPosition === 'function') {
+                  window.electronAPI.resetWebcamPosition();
+                } 
+                // Otherwise use the generic message sender
+                else if (typeof window.electronAPI.sendMessage === 'function') {
+                  window.electronAPI.sendMessage('reset-webcam-position');
+                }
+                else {
+                  console.error('[Main] Cannot reset webcam position: no suitable API method found');
+                }
+              } else {
+                console.error('[Main] Cannot reset webcam position: electronAPI not available');
+              }
+            });
+          }
 
           console.log('[Main] App initialization complete');
         } catch (err) {
           console.error('[Main] Failed to initialize:', err);
         }
-      });
+      }
+
+      // Don't automatically initialize on load - we'll do it after scripts are loaded
+      // window.addEventListener('load', initApp); // DISABLED - now handled by loadScripts()
     </script>
-  </head>
-  <body class="has-background-dark has-text-light">
-    <div class="container">
-      <div class="content-wrapper">
-        <div class="logo-container">
-          <img src="../20250512_0950_Capybara Filmmaker Cartoon_simple_compose_01jv1bh6aaf3980pm19f1vc0za.png" alt="Cappybara Logo" class="logo-img">
-        </div>
-        <div class="app-title">Cappy</div>
-
-      <!-- Recording Controls -->
-      <div class="control-section">
-        <div class="has-text-centered" style="display: flex; justify-content: center;">
-          <button id="recordBtn" class="button is-primary is-small" style="min-width:130px; margin: 0 auto;">
-            <span class="icon is-small"><i class="fas fa-record-vinyl"></i></span>
-            <span>Start Recording</span>
-          </button>
-          <button id="stopBtn" class="button is-danger is-small" style="display:none; min-width:130px; margin: 0 auto;">
-            <span class="icon"><i class="fas fa-stop"></i></span>
-            <span>Stop Recording</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Recording Options -->
-      <div class="control-section">
-        <div class="section-heading">Recording Options</div>
-        <div class="has-text-centered">
-          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 0.5rem; display: block;">
-            <input type="checkbox" id="enableWebcamToggle" class="mr-2" checked onchange="window.electronAPI.toggleWebcam(this.checked)">
-            Enable webcam preview
-          </label>
-        </div>
-      </div>
-
-      <!-- Background Controls -->    
-      <div class="control-section">
-        <div class="section-heading">Background Settings</div>
-        <div class="has-text-centered">
-          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 0.5rem; display: block;">
-            <input type="checkbox" id="blurBgToggle" class="mr-2" onchange="window.electronAPI.sendSetBlur(this.checked)">
-            Blur Background
-          </label>
-          <div class="color-presets" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; flex-wrap: wrap;">
-            <button class="color-btn" data-bgcolor="#FFFFFF" style="width: 24px; height: 24px; border-radius: 8px; border: 2px solid rgba(0,0,0,0.2); background: #FFFFFF; cursor: pointer; position: relative;" title="Natural"></button>
-            <button class="color-btn" data-bgcolor="#00FFFF" style="width: 24px; height: 24px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.2); background: #00FFFF; cursor: pointer; position: relative;" title="Cyan"></button>
-            <button class="color-btn" data-bgcolor="#FF1493" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #FF1493; cursor: pointer; position: relative;" title="Hot Pink"></button>
-            <button class="color-btn" data-bgcolor="#39FF14" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #39FF14; cursor: pointer; position: relative;" title="Neon Green"></button>
-            <button class="color-btn" data-bgcolor="#FF3131" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #FF3131; cursor: pointer; position: relative;" title="Neon Red"></button>
-            <button class="color-btn" data-bgcolor="#FFD700" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #FFD700; cursor: pointer; position: relative;" title="Gold"></button>
-            <button class="color-btn" data-bgcolor="#9D00FF" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: #9D00FF; cursor: pointer; position: relative;" title="Electric Purple"></button>
-          </div>
-        </div>
-      </div>
-          <div class="control-section">
-        <div class="section-heading">Audio Source</div>
-        <div class="has-text-centered">
-          <div id="audioInputBtn" style="display:inline-flex;align-items:center;gap:0.3em;cursor:pointer;background:#232323;border-radius:8px;padding:0.4em 0.8em;box-shadow:0 2px 8px rgba(0,0,0,0.13);border:1.5px solid #444;min-width:120px;max-width:200px;position:relative;overflow:visible;margin:0 auto;">
-            <i class="fas fa-microphone" style="color:#fff;font-size:0.9em;"></i>
-            <span id="audioInputLabel" style="color:#fff;font-size:0.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;display:inline-block;vertical-align:middle;">Select Microphone</span>
-            <span id="audioInputBadge" style="background:#27ae60;color:#fff;font-size:0.75em;padding:0.15em 0.6em;border-radius:4px;margin-left:0.3em;">On</span>
-            <i class="fas fa-chevron-down" style="color:#aaa;font-size:0.8em;margin-left:0.3em;"></i>
-            <div id="audioInputDropdown" style="display:none;position:absolute;top:110%;left:0;width:100%;background:#232323;border:1.5px solid #444;border-radius:1em;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,0.18);min-width:140px;max-width:220px;overflow-x:auto;">
-              <!-- Device options will be injected here -->
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="content has-text-centered mt-2">
-        <span class="is-size-7 has-text-grey-light">Your recording will be saved as a .webm file after you stop.</span>
-      </div>
-      </div>
-    </div>
   </body>
 </html>

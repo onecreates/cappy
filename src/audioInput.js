@@ -78,11 +78,10 @@ class AudioInputManager {
         this.audioDevices.forEach((device, idx) => {
             const opt = document.createElement('div');
             opt.textContent = device.label || `Microphone ${idx + 1}`;
-            opt.title = device.label || `Microphone ${idx + 1}`;
-            opt.style.padding = '0.5em 1em';
+            opt.title = device.label || `Microphone ${idx + 1}`;            opt.style.padding = '0.5em 1em';
             opt.style.cursor = 'pointer';
             opt.style.color = '#fff';
-            opt.style.fontSize = '0.97em';
+            opt.style.fontSize = '0.85em';
             opt.style.borderBottom = idx < this.audioDevices.length-1 ? '1px solid #333' : 'none';
             opt.style.whiteSpace = 'nowrap';
             opt.style.overflow = 'hidden';
@@ -205,34 +204,35 @@ class AudioInputManager {
         } else {
             this.positionDropdown();
         }
-    }
-    
-    positionDropdown() {
+    }    positionDropdown() {
         if (!this.btnEl || !this.dropdownEl) return;
         
-        this.dropdownEl.style.display = 'block';
-        this.dropdownEl.style.visibility = 'hidden';
-        this.dropdownEl.style.top = '110%';
-        this.dropdownEl.style.bottom = '';
+        console.log('[AudioInput] Positioning dropdown - btnEl:', this.btnEl.id, 'dropdownEl:', this.dropdownEl.id);
         
-        // Use requestAnimationFrame for accurate dimensions
-        requestAnimationFrame(() => {
-            const rect = this.dropdownEl.getBoundingClientRect();
-            const btnRect = this.btnEl.getBoundingClientRect();
-            const winH = window.innerHeight;
-            
-            if (btnRect.bottom + rect.height > winH - 10) {
-                this.dropdownEl.style.top = '';
-                this.dropdownEl.style.bottom = '110%';
-                this.dropdownEl.style.maxHeight = `${btnRect.top - 30}px`;
-            } else {
-                this.dropdownEl.style.top = '110%';
-                this.dropdownEl.style.bottom = '';
-                this.dropdownEl.style.maxHeight = '180px';
-            }
-            
-            this.dropdownEl.style.visibility = 'visible';
-        });
+        // Make absolutely sure the dropdown is visible and correctly positioned
+        this.dropdownEl.style.display = 'block';
+        this.dropdownEl.style.visibility = 'visible';
+        this.dropdownEl.style.opacity = '1';
+        this.dropdownEl.style.position = 'fixed'; // Use fixed positioning instead of absolute
+        
+        // Position in center of screen for better visibility during debugging
+        const rect = this.btnEl.getBoundingClientRect();
+        this.dropdownEl.style.top = (rect.top - 190) + 'px'; // Position above button with fixed distance
+        this.dropdownEl.style.left = (rect.left + (rect.width/2)) + 'px';
+        this.dropdownEl.style.transform = 'translateX(-50%)';
+        
+        // Ensure it's on top of everything
+        this.dropdownEl.style.maxHeight = '180px';
+        this.dropdownEl.style.width = '280px';
+        this.dropdownEl.style.zIndex = '10000'; // Higher z-index
+        this.dropdownEl.style.backgroundColor = '#232323'; // Ensure background is visible
+        this.dropdownEl.style.border = '2px solid #1de9b6';
+        this.dropdownEl.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)';
+        
+        console.log('[AudioInput] Dropdown positioned at:', 
+            'top:', this.dropdownEl.style.top,
+            'left:', this.dropdownEl.style.left,
+            'z-index:', this.dropdownEl.style.zIndex);
     }
     
     handleOutsideClick(e) {

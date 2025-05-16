@@ -41,3 +41,25 @@ input[type="range"]::-webkit-slider-thumb:hover {
   background: linear-gradient(45deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
   pointer-events: none;
 }
+
+/* Enhanced checkbox for webcam toggle */
+.checkbox {
+  padding: 0.6em 1em;
+  border-radius: 8px;
+  background: rgba(29, 233, 182, 0.08);
+  border: 1px solid rgba(29, 233, 182, 0.3);
+  transition: all 0.2s ease;
+}
+
+.checkbox:hover {
+  background: rgba(29, 233, 182, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* System audio checkbox specific styles */
+.checkbox[style*="rgba(255, 152, 0, 0.08)"]:hover {
+  background: rgba(255, 152, 0, 0.12) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}

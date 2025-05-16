@@ -128,6 +128,49 @@
       window.blurBgEnabled = false;
       window.selectedBgColor = '#222';
       window.blurStrength = 12; // Default blur strength
+      
+      // Electron API hooks: update preview settings when main process sends updates
+      if (window.electronAPI) {
+        console.log('[PREVIEW] Setting up electron API event handlers');
+        
+        window.electronAPI.onSetBlur(enabled => { 
+          console.log('[PREVIEW] onSetBlur received:', enabled);
+          window.blurBgEnabled = enabled;
+          // Don't apply any filter to the canvas directly - we'll handle blur in the background processing
+        });
+        
+        window.electronAPI.onSetBlurStrength(strength => { 
+          console.log('[PREVIEW] onSetBlurStrength received:', strength);
+          window.blurStrength = strength;
+          // Strength value is used in the segmentation processing
+        });
+        
+        window.electronAPI.onSetBgColor(color => { 
+          console.log('[PREVIEW] onSetBgColor received:', color);
+          
+          // Force a string type and store it with improved handling
+          if (color) {
+            // Handle various color formats correctly
+            window.selectedBgColor = String(color).trim();
+            
+            // Force the blur to be enabled when setting a color
+            window.blurBgEnabled = true;
+            
+            console.log('[PREVIEW] UPDATED background color to:', window.selectedBgColor);
+          } else {
+            console.error('[PREVIEW] Received invalid color value:', color);
+          }
+          console.log('[PREVIEW] Enabled blur effect for background color');
+          
+          // Force redraw on next animation frame to show the change immediately
+          requestAnimationFrame(() => {
+            console.log('[PREVIEW] Forcing frame redraw for color change');
+            // This will cause a new drawFrame cycle with our updated settings
+          });
+        });
+        
+        // Webcam source selection functionality has been removed
+      }
       let bodyPixNet = null;
       let modelLoadRetries = 0;
       const MAX_RETRIES = 3;
@@ -182,20 +225,6 @@
         }
       }
 
-      window.electronAPI.onSetBlur((enabled) => {
-        window.blurBgEnabled = enabled;
-        console.log('[PREVIEW] Blur enabled:', enabled);
-      });
-
-      window.electronAPI.onSetBlurStrength((strength) => {
-        window.blurStrength = strength;
-        console.log('[PREVIEW] Blur strength set to:', strength);
-      });
-
-      window.electronAPI.onSetBgColor((color) => {
-        window.selectedBgColor = color;
-      });
-
       async function setupWebcam() {
         if (modelLoadRetries >= MAX_RETRIES) {
           document.querySelector('.loading-text').textContent = 'Failed to initialize. Please refresh the page.';
@@ -211,6 +240,7 @@
             willReadFrequently: true
           });
           
+          // Set up constraints
           const constraints = {
             video: {
               width: 460,
@@ -294,6 +324,7 @@
           throw err;
         }
       }          async function drawFrame(timestamp) {
+        console.log('[PREVIEW] drawFrame blurBgEnabled:', window.blurBgEnabled);
         const video = document.getElementById('webcam');
         const canvas = document.getElementById('webcam-canvas');
         
@@ -318,8 +349,8 @@
         }
         lastFrameTime = timestamp;
 
-        try {
-          if (window.blurBgEnabled && bodyPixNet && !segmentationInProgress) {
+        try {            // Always check if we need background processing - either blur or solid color
+            if ((window.blurBgEnabled || window.selectedBgColor !== '#222') && bodyPixNet && !segmentationInProgress) {
             segmentationInProgress = true;
             
             // Optimized segmentation settings for real-time performance
@@ -342,11 +373,57 @@
             // Apply background effects
             const strength = Math.min(20, Math.max(1, window.blurStrength || 10));
             
-            if (window.selectedBgColor && window.selectedBgColor !== '#222') {
-              // Solid color background
-              bgCtx.fillStyle = window.selectedBgColor;
-              bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+            console.log('[PREVIEW] Selected background color:', window.selectedBgColor);
+            
+            // Always clear canvas first
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            
+            // FIXED: Force log color for debugging
+            console.log('[PREVIEW] DEBUGGING - Processing background with color:', window.selectedBgColor);
+            
+            // Improved condition to handle all color cases
+            if (window.selectedBgColor && 
+                window.selectedBgColor !== '#222' && 
+                window.selectedBgColor !== '222' &&
+                window.selectedBgColor !== 'undefined') {
+              // Solid color background - use the selected color
+              try {
+                // Ensure color format is correct and valid
+                let colorToUse = window.selectedBgColor;
+                
+                // Test if this is a valid CSS color
+                const testDiv = document.createElement('div');
+                testDiv.style.color = colorToUse;
+                const isValidColor = testDiv.style.color !== '';
+                
+                // If color doesn't start with # and isn't a named color, add it
+                if (!isValidColor && !colorToUse.startsWith('#') && !colorToUse.startsWith('rgb')) {
+                  colorToUse = '#' + colorToUse;
+                  // Test again with the hash
+                  testDiv.style.color = colorToUse;
+                }
+                
+                // Fill with solid color if valid, otherwise use a fallback
+                if (testDiv.style.color !== '') {
+                  bgCtx.fillStyle = colorToUse;
+                  bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+                  console.log('[PREVIEW] SUCCESS - Applied solid color background:', colorToUse);
+                } else {
+                  // Use a fallback color that will always work
+                  bgCtx.fillStyle = '#1e90ff'; // Dodger blue as fallback
+                  bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+                  console.log('[PREVIEW] WARNING - Used fallback color instead of:', colorToUse);
+                }
+              } catch (colorErr) {
+                console.error('[PREVIEW] Error applying color:', colorErr);
+                // Fallback to default
+                bgCtx.fillStyle = '#222222';
+                bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+              }
             } else {
+              // Draw original video as background
+              bgCtx.drawImage(video, 0, 0);
+              
               // Blurred background with enhanced depth
               bgCtx.filter = `blur(${strength}px)`;
               bgCtx.globalAlpha = 0.95;
@@ -357,18 +434,7 @@
               bgCtx.globalCompositeOperation = 'multiply';
               bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
               bgCtx.globalCompositeOperation = 'source-over';
-            }
-            
-            // Second pass: Additional depth effect
-            if (window.selectedBgColor === '#222') {
-                // Add depth with a subtle gradient
-                const gradient = bgCtx.createLinearGradient(0, 0, bgCanvas.width, bgCanvas.height);
-                gradient.addColorStop(0, 'rgba(0,0,0,0.2)');
-                gradient.addColorStop(0.5, 'rgba(0,0,0,0.3)');
-                gradient.addColorStop(1, 'rgba(0,0,0,0.4)');
-                bgCtx.fillStyle = gradient;
-                bgCtx.globalCompositeOperation = 'overlay';
-                bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+              console.log('[PREVIEW] Applied blurred background with strength:', strength);
             }
             
             bgCtx.globalCompositeOperation = 'source-over';
@@ -480,48 +546,78 @@
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         document.querySelector('.loading-text').textContent = 'Camera access not supported in this browser';
         console.error('[PREVIEW] getUserMedia not supported');
-        return;
+      } else {
+        // Start webcam setup
+        setupWebcam().catch(err => {
+          console.error('[PREVIEW] Setup failed:', err);
+          document.querySelector('.loading-text').textContent = 'Camera initialization failed. Try refreshing.';
+        });
       }
-
-      // Start webcam setup
-      setupWebcam().catch(err => {
-        console.error('[PREVIEW] Setup failed:', err);
-        document.querySelector('.loading-text').textContent = 'Camera initialization failed. Try refreshing.';
-      });
     </script>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('webcam-container');
         let isDragging = false;
         
+        // Debug logging for available APIs
+        console.log('[PREVIEW] Available APIs:', {
+          electronAPI: typeof window.electronAPI !== 'undefined',
+          electronWindow: typeof window.electronWindow !== 'undefined',
+          diagAPI: typeof window.diagAPI !== 'undefined'
+        });
+        
+        // Make the webcam window draggable
+        // We need to use the proper IPC channel for dragging functionality
+        
         // Handle mousedown to begin dragging
-        container.addEventListener('mousedown', () => {
+        container.addEventListener('mousedown', (e) => {
+          console.log('[PREVIEW] Mouse down event');
           isDragging = true;
-          window.electron.setIgnoreMouseEvents(false);
+          // Send IPC message to handle drag events
+          if (window.electronAPI) {
+            try {
+              window.electronAPI.sendMessage('webcam-drag-start');
+            } catch (error) {
+              console.error('[PREVIEW] Error sending webcam-drag-start:', error);
+            }
+          } else {
+            console.warn('[PREVIEW] electronAPI not available for drag events');
+          }
         });
         
         // Handle mouseup to end dragging
-        document.addEventListener('mouseup', () => {
-          isDragging = false;
-          window.electron.setIgnoreMouseEvents(true, { forward: true });
-        });
-        
-        // Handle mouse movement for drag state
-        container.addEventListener('mousemove', () => {
-          if (!isDragging) {
-            window.electron.setIgnoreMouseEvents(false);
+        document.addEventListener('mouseup', (e) => {
+          console.log('[PREVIEW] Mouse up event');
+          if (isDragging) {
+            isDragging = false;
+            // Send IPC message to handle drag end
+            if (window.electronAPI) {
+              try {
+                window.electronAPI.sendMessage('webcam-drag-end');
+              } catch (error) {
+                console.error('[PREVIEW] Error sending webcam-drag-end:', error);
+              }
+            }
           }
         });
         
-        container.addEventListener('mouseleave', () => {
-          if (!isDragging) {
-            window.electron.setIgnoreMouseEvents(true, { forward: true });
-          }
+        // Mouse movement handling
+        container.addEventListener('mousemove', (e) => {
+          // No special handling needed - Electron window will handle dragging
+          console.log('[PREVIEW] Mouse move event while dragging:', isDragging);
+        });
+        
+        // Mouse leave handling
+        container.addEventListener('mouseleave', (e) => {
+          // No special handling needed
         });
 
         // Double click to reset position
-        container.addEventListener('dblclick', () => {
-          window.electron.resetPosition();
+        container.addEventListener('dblclick', (e) => {
+          console.log('[PREVIEW] Double click event');
+          if (window.electronAPI) {
+            window.electronAPI.sendMessage('reset-webcam-position');
+          }
         });
       });
     </script>

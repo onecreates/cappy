@@ -42,7 +42,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('set-bgcolor', (event, color) => callback(color));
   },
   setBgColor: (color) => ipcRenderer.send('set-bgcolor', color),
-  onStopRecording: (callback) => ipcRenderer.on('stop-recording', callback)
+  onStopRecording: (callback) => ipcRenderer.on('stop-recording', callback),
+  // Force quit the app when desktop capturer is unavailable
+  forceKill: () => ipcRenderer.send('force-kill')
 });
 
 // Expose window and recording controls
