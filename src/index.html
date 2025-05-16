@@ -373,20 +373,20 @@
         
         // Load recorder.js
         const recorderScript = document.createElement('script');
-        recorderScript.src = 'recorder.js';
+        recorderScript.src = './recorder.js';
         recorderScript.onload = function() {
           console.log('[Debug] recorder.js loaded successfully');
           
           // Load system audio helper first
           const systemAudioScript = document.createElement('script');
-          systemAudioScript.src = 'systemAudioHelper.js';
+          systemAudioScript.src = './systemAudioHelper.js';
           
           systemAudioScript.onload = function() {
             console.log('[Debug] systemAudioHelper.js loaded successfully');
             
             // Load enhanced system audio handler
             const systemAudioHandlerScript = document.createElement('script');
-            systemAudioHandlerScript.src = 'systemAudioHandler.js';
+            systemAudioHandlerScript.src = './systemAudioHandler.js';
             
             systemAudioHandlerScript.onload = function() {
               console.log('[Debug] systemAudioHandler.js loaded successfully');
@@ -408,7 +408,7 @@
             
             // Try to load enhanced handler directly
             const systemAudioHandlerScript = document.createElement('script');
-            systemAudioHandlerScript.src = 'systemAudioHandler.js';
+            systemAudioHandlerScript.src = './systemAudioHandler.js';
             
             systemAudioHandlerScript.onload = function() {
               console.log('[Debug] systemAudioHandler.js loaded successfully');
@@ -431,7 +431,7 @@
         function loadAudioInput() {
           // Continue loading audioInput.js
           const audioScript = document.createElement('script');
-          audioScript.src = 'audioInput.js';
+          audioScript.src = './audioInput.js';
           
           audioScript.onload = function() {
             console.log('[Debug] audioInput.js loaded successfully');

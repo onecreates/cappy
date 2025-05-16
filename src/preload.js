@@ -61,3 +61,27 @@ contextBridge.exposeInMainWorld('electron', {
   setIgnoreMouseEvents: (...args) => ipcRenderer.invoke('set-ignore-mouse-events', ...args),
   resetPosition: () => ipcRenderer.invoke('reset-webcam-position'),
 });
+
+// Add error recovery mechanism
+let errorCount = 0;
+const MAX_ERRORS = 5;
+const resetErrorCountInterval = setInterval(() => { 
+  errorCount = 0; 
+}, 60000); // Reset error count every minute
+
+// Handle unhandled promise rejections which might be caused by IPC failures
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled Promise Rejection:', event.reason);
+  errorCount++;
+  
+  // If we're getting too many errors, notify main process
+  if (errorCount > MAX_ERRORS) {
+    console.error('Too many errors detected, requesting app restart');
+    try {
+      ipcRenderer.send('restart-app');
+    } catch (e) {
+      // If even that fails, force reload
+      setTimeout(() => window.location.reload(), 1000);
+    }
+  }
+});

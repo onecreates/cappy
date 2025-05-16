@@ -1,15 +1,14 @@
 const { app, BrowserWindow, ipcMain, desktopCapturer, Tray, Menu } = require('electron');
 const path = require('path'); // Use Node's path module
 
-// Use both preload scripts - the original and diagnostic one
-const diagPreloadPath = path.resolve(__dirname, 'diag-preload.js');
+// Use only the main preload script to avoid conflicts
 const mainPreloadPath = path.resolve(__dirname, 'preload.js');
 const fs = require('fs');
-console.log('[Main] DEBUG: Using diagnostic preload script path:', diagPreloadPath);
-console.log('[Main] DEBUG: Diagnostic preload file exists?', fs.existsSync(diagPreloadPath));
-console.log('[Main] DEBUG: Main preload file exists?', fs.existsSync(mainPreloadPath));
-// Always set the preload option to the diagnostic preload
-const preloadOption = diagPreloadPath;
+console.log('[Main] __dirname:', __dirname);
+console.log('[Main] mainPreloadPath:', mainPreloadPath);
+console.log('[Main] Main preload file exists?', fs.existsSync(mainPreloadPath));
+// Set the preload option to the main preload
+const preloadOption = mainPreloadPath;
 
 // Set application icon
 const appIconPath = path.resolve(path.dirname(path.dirname(__dirname)), 'assets_task_01jv1bh5axegtva6b64gnqf5cj_1747023639_img_0.ico');
@@ -58,8 +57,8 @@ const createTrayIcon = () => {
 
 // Extra debug logs for troubleshooting preload issues
 console.log('[Main] __dirname:', __dirname);
-console.log('[Main] diagPreloadPath:', diagPreloadPath);
-console.log('[Main] mainPreloadPath:', mainPreloadPath);
+console.log('[Main] preloadOption:', preloadOption);
+console.log('[Main] index.html path:', path.join(__dirname, 'index.html'));
 console.log('[Main] index.html path:', path.join(__dirname, 'index.html'));
 
 // Set up logging
@@ -133,7 +132,20 @@ const createWindow = () => {
   });
 
   // DEBUG: check preload file presence
-  console.log('[Main] preloadPath exists:', fs.existsSync(diagPreloadPath));
+  console.log('[Main] preloadPath exists:', fs.existsSync(preloadOption));
+
+  // Add error handling for crashed events
+  mainWindow.webContents.on('crashed', (event) => {
+    console.error('[MainWindow] Renderer process crashed!');
+    // Handle the crash - recreate the window after a short timeout
+    setTimeout(() => {
+      if (mainWindow) {
+        mainWindow.destroy();
+        mainWindow = null;
+        createWindow();
+      }
+    }, 1000);
+  });
 
   // Open DevTools for debugging
   mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -430,6 +442,17 @@ ipcMain.handle('reset-webcam-position', () => {
 app.whenReady().then(() => {
   createWindow();
   createTrayIcon();
+
+  // Add global error handler for IPC errors
+  ipcMain.on('error', (event, message) => {
+    console.error('[IPC Error]', message);
+  });
+
+  // Handle forced application restart
+  ipcMain.on('restart-app', () => {
+    app.relaunch();
+    app.exit(0);
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
