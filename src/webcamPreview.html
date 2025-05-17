@@ -123,8 +123,7 @@
       </div>
     </div>
 
-    <script>
-      const DEBUG_MODE = false;
+    <script>      const DEBUG_MODE = false;
       window.blurBgEnabled = false;
       window.selectedBgColor = '#222';
       window.blurStrength = 12; // Default blur strength
@@ -132,12 +131,38 @@
       // Electron API hooks: update preview settings when main process sends updates
       if (window.electronAPI) {
         console.log('[PREVIEW] Setting up electron API event handlers');
-        
-        window.electronAPI.onSetBlur(enabled => { 
-          console.log('[PREVIEW] onSetBlur received:', enabled);
-          window.blurBgEnabled = enabled;
-          // Don't apply any filter to the canvas directly - we'll handle blur in the background processing
-        });
+
+        // Register the stop-webcam handler if the function is available
+        if (window.electronAPI.onStopWebcam) {
+          console.log('[PREVIEW] Registering stop-webcam handler');
+          window.electronAPI.onStopWebcam(() => {
+            console.log('[PREVIEW] Received stop-webcam message, stopping camera stream');
+            cleanupWebcam();
+          });
+        } else {
+          console.warn('[PREVIEW] onStopWebcam function not available in electronAPI');
+        }
+       
+       // Update the onSetBlur handler
+window.electronAPI.onSetBlur((enabled) => {
+  console.log('[PREVIEW] Received set-blur with enabled:', enabled);
+  
+  // Store the blur state in a variable
+  window.blurBgEnabled = enabled;
+  
+  // When disabling blur, also reset the background color to default
+  if (!enabled) {
+    console.log('[PREVIEW] Disabling blur effect and resetting background color');
+    window.selectedBgColor = '#222'; // Reset to default color
+    
+    // Make sure blur is actually removed here
+    document.getElementById('webcam-container').classList.remove('blur-effect');
+  } else {
+    console.log('[PREVIEW] Enabling blur effect');
+    // Apply blur here
+    document.getElementById('webcam-container').classList.add('blur-effect');
+  }
+});
         
         window.electronAPI.onSetBlurStrength(strength => { 
           console.log('[PREVIEW] onSetBlurStrength received:', strength);
@@ -584,7 +609,31 @@
             console.warn('[PREVIEW] electronAPI not available for drag events');
           }
         });
-        
+        if (window.electronAPI && typeof window.electronAPI.onSetBlur === 'function') {
+  window.electronAPI.onSetBlur((enabled) => {
+    console.log('[PREVIEW] Received set-blur with enabled:', enabled);
+    
+    // Store the blur state in a variable
+    blurBgEnabled = enabled;
+    
+    // Apply or remove blur based on the enabled state
+    if (!enabled) {
+      console.log('[PREVIEW] Disabling blur effect');
+      // Make sure blur is actually removed here
+      // This depends on how your blur implementation works
+      
+      // If you're using a CSS class to apply blur:
+      document.getElementById('webcam-container').classList.remove('blur-effect');
+      
+      // If you're using a separate canvas or effect:
+      // disableBlurEffect();
+    } else {
+      console.log('[PREVIEW] Enabling blur effect');
+      // Apply blur here
+      document.getElementById('webcam-container').classList.add('blur-effect');
+    }
+  });
+};
         // Handle mouseup to end dragging
         document.addEventListener('mouseup', (e) => {
           console.log('[PREVIEW] Mouse up event');
@@ -621,5 +670,6 @@
         });
       });
     </script>
+    
   </body>
 </html>

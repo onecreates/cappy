@@ -109,24 +109,20 @@ const createWindow = () => {
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: true,
-      devTools: true,
+      devTools: false,
       // Add required permissions for desktop capture and system audio
       additionalArguments: [
         '--enable-features=MediaStreamAPI,GetDisplayMedia',
         '--enable-usermedia-screen-capturing',
-        '--auto-accept-this-tab-capture',
+        //'--auto-accept-this-tab-capture',
         '--allow-http-screen-capture'
       ],
       enableWebRTC: true
     }
   });
   
-  // Add minimize to tray behavior
-  mainWindow.on('minimize', (event) => {
-    event.preventDefault();
-    mainWindow.hide();
-  });
 
+  mainWindow.webContents.openDevTools();
   mainWindow.webContents.on('did-fail-load', (e, errorCode, errorDescription, validatedURL) => {
     console.error('[MainWindow] failed to load:', validatedURL, errorCode, errorDescription);
   });
@@ -145,7 +141,7 @@ const createWindow = () => {
         createWindow();
       }
     }, 1000);
-  });
+  });  
 
   // Open DevTools for debugging
   mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -168,6 +164,7 @@ const createWindow = () => {
 const createWebcamWindow = () => {
   if (webcamWindow) {
     webcamWindow.show();
+      webcamWindow.webContents.openDevTools();
     return webcamWindow;
   }
   
@@ -179,6 +176,10 @@ const createWebcamWindow = () => {
     width: 230,
     height: 230,
     frame: false,
+    closeable: false,
+    minimizable: false,
+    maximizable: false,
+    titleBarStyle: 'hidden',
     transparent: true,
     alwaysOnTop: true,
     resizable: false,
@@ -195,7 +196,7 @@ const createWebcamWindow = () => {
       nodeIntegration: false,
       enableRemoteModule: false,
       webSecurity: true,
-      devTools: true,
+      devTools: false,
       // Add required permissions for media capture
       additionalArguments: ['--enable-features=MediaStreamAPI,GetDisplayMedia'],
       enableWebRTC: true
@@ -269,23 +270,47 @@ ipcMain.on('main-window-show', () => {
   if (mainWindow) mainWindow.show();
 });
 
+// Remove the first handler (lines 298-317)
+// Keep only this improved version:
 ipcMain.on('toggle-webcam', (event, enabled) => {
+  console.log('[Main] Toggle webcam with enabled:', enabled);
+
   if (enabled) {
-    if (!webcamWindow) {
+    // Show webcam
+    if (!webcamWindow || webcamWindow.isDestroyed()) {
+      // Create new window if it doesn't exist or was destroyed
+      console.log('[Main] Creating new webcam window');
       createWebcamWindow();
     } else {
+      // Show existing window and bring to front
+      console.log('[Main] Showing existing webcam window');
       webcamWindow.show();
+      webcamWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+      
+      // IMPORTANT: Reload the webcam preview to reset initialization
+      webcamWindow.webContents.reload();
     }
   } else {
-    if (webcamWindow) {
+    // Hide webcam and stop the stream
+    if (webcamWindow && !webcamWindow.isDestroyed()) {
+      console.log('[Main] Hiding webcam window');
+      // Send message to stop the webcam stream before hiding the window
+      webcamWindow.webContents.send('stop-webcam');
       webcamWindow.hide();
+    } else {
+      console.log('[Main] No webcam window to hide');
     }
   }
 });
 
 ipcMain.on('set-blur', (event, enabled) => {
+  console.log('[Main] Received set-blur with enabled:', enabled);
+  
   if (webcamWindow) {
+    console.log('[Main] Forwarding set-blur to webcam window:', enabled);
     webcamWindow.webContents.send('set-blur', enabled);
+  } else {
+    console.warn('[Main] Cannot set blur: webcamWindow is not defined');
   }
 });
 
@@ -341,9 +366,7 @@ ipcMain.on('set-bgcolor', (event, color) => {
   }
 });
 
-ipcMain.on('start-recording', () => {
-  if (webcamWindow) webcamWindow.setIgnoreMouseEvents(true);
-});
+
 
 ipcMain.on('stop-recording', () => {
   if (mainWindow) mainWindow.show();
@@ -359,14 +382,6 @@ ipcMain.on('force-kill', () => {
   app.exit(1);
 });
 
-// Webcam window management
-ipcMain.handle('toggle-webcam', (event, shouldShow) => {
-  if (shouldShow) {
-    createWebcamWindow();
-  } else if (webcamWindow) {
-    webcamWindow.hide();
-  }
-});
 
 ipcMain.handle('hide-webcam', () => {
   if (webcamWindow) {
