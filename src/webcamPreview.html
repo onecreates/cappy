@@ -1,20 +1,54 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html>  <head>
     <meta charset="UTF-8" />
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
-    <style>
-      body {
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>    <style>
+      html {
+        background: transparent !important;
         margin: 0;
+        padding: 0;
         overflow: hidden;
-        background: transparent;
-        animation: fadeIn 0.3s ease-out;
-        user-select: none;
+        border: none;
       }
       
-      #webcam-container {
-        position: relative;
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: transparent !important;
+        animation: fadeIn 0.3s ease-out;
+        user-select: none;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        -webkit-app-region: no-drag;
+      }
+      
+      /* Hide any potential title bar elements */
+      .titlebar, 
+      .title-bar, 
+      .title, 
+      .caption-area,
+      .window-title,
+      .window-caption,
+      .browser-caption,
+      .header,
+      *[class*="title"],
+      *[id*="title"],
+      *[class*="caption"],
+      *[id*="caption"] {
+        display: none !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        position: absolute !important;
+        overflow: hidden !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }        #webcam-container {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 230px;
         height: 230px;
         background: transparent;
@@ -23,6 +57,7 @@
         cursor: move;
         user-select: none;
         -webkit-user-select: none;
+        z-index: 1000;
       }
 
       #webcam-container:active {
@@ -91,12 +126,22 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin-bottom: 12px;
-      }
-
-      .loading-text {
+      }      .loading-text {
         color: #fff;
         font-size: 0.9em;
         letter-spacing: 0.05em;
+      }
+      
+      /* Explicitly hide any potential artifacts */
+      .window-frame, .window-content, #root, .app-container, .app-frame {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+      
+      /* Hide the default window border */  
+      ::-webkit-scrollbar {
+        display: none;
       }
 
       @keyframes spin {
@@ -108,9 +153,7 @@
         from { opacity: 0; transform: scale(0.95); }
         to { opacity: 1; transform: scale(1); }
       }
-    </style>
-  </head>
-  <body>
+    </style>  </head>  <body style="background: transparent;">
     <div id="webcam-container">
       <div class="preview-container">
         <canvas id="webcam-canvas" width="230" height="230"></canvas>
@@ -121,12 +164,11 @@
         <div class="loading-spinner"></div>
         <div class="loading-text">Initializing Camera...</div>
       </div>
-    </div>
-
-    <script>      const DEBUG_MODE = false;
+    </div><script>      const DEBUG_MODE = false;
       window.blurBgEnabled = false;
       window.selectedBgColor = '#222';
       window.blurStrength = 12; // Default blur strength
+  
       
       // Electron API hooks: update preview settings when main process sends updates
       if (window.electronAPI) {
@@ -214,14 +256,20 @@ window.electronAPI.onSetBlur((enabled) => {
           return;
         }
         isCleaningUp = true;
-        console.log('[PREVIEW] Starting cleanup...');
+        console.log('[PREVIEW] Starting cleanup of webcam resources...');
         
         try {
+          // Stop all tracks in the current stream
           if (currentStream) {
+            console.log('[PREVIEW] Stopping all media tracks...');
             const tracks = currentStream.getTracks();
+            console.log('[PREVIEW] Found ' + tracks.length + ' tracks to stop');
             tracks.forEach(track => {
-              if (track.readyState === 'live') {
+              try {
+                console.log('[PREVIEW] Stopping track: ' + track.kind + ' (state: ' + track.readyState + ')');
                 track.stop();
+              } catch (err) {
+                console.error('[PREVIEW] Error stopping track:', err);
               }
             });
             currentStream = null;

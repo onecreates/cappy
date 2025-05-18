@@ -89,4 +89,6 @@ contextBridge.exposeInMainWorld('webcamDrag', {
   endDrag: () => ipcRenderer.send('webcam-drag-end')
 });
 
+
+
 console.log('[Preload] Script executed successfully');

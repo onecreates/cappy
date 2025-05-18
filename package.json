@@ -6,22 +6,50 @@
   "main": "src/index.js",
   "scripts": {
     "start": "electron .",
+    "start:dev": "set NODE_ENV=development && electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:mac": "electron-builder --mac",
-    "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux"
+    "optimize": "node optimize-modules.js",
+    "predist": "npm run optimize",
+    "dist": "set NODE_ENV=production && electron-builder",
+    "predist:win": "npm run optimize",
+    "dist:mac": "set NODE_ENV=production && electron-builder --mac",
+    "dist:win": "set NODE_ENV=production && electron-builder --win",
+    "dist:win:dir": "set NODE_ENV=production && electron-builder --win --dir",
+    "dist:linux": "set NODE_ENV=production && electron-builder --linux"
   },
   "keywords": [],
-  "author": "anubh",
-  "license": "MIT",
-  "devDependencies": {
-    "electron": "^36.2.0",
+  "author": "anubhav Kaushik",
+  "license": "MIT",  "devDependencies": {
+    "electron": "36.2.1",
     "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.cappy.app",
     "productName": "Cappy",
+    "compression": "maximum",
+    "asar": true,
+    "fileAssociations": [],
+    "asarUnpack": [],
+    "files": [
+      "src/**/*",
+      "package.json",
+      "*.ico",
+      "*.png",
+      "!**/*.{psd,log,map}",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples,docs}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.js.map",
+      "!**/*.min.*.js",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ],
     "mac": {
       "category": "public.app-category.utilities",
       "icon": "20250512_0950_Capybara Filmmaker Cartoon_simple_compose_01jv1bh6aaf3980pm19f1vc0za.png",
@@ -39,7 +67,10 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "artifactName": "${productName}-Setup-${version}.exe",
+      "legalTrademarks": "",
+      "requestedExecutionLevel": "asInvoker"
     },
     "dmg": {
       "background": "20250512_0950_Capybara Filmmaker Cartoon_simple_compose_01jv1bh6aaf3980pm19f1vc0za.png",
@@ -65,7 +96,19 @@
     },
     "nsis": {
       "oneClick": true,
-      "allowToChangeInstallationDirectory": false
+      "allowToChangeInstallationDirectory": false,
+      "differentialPackage": false,
+      "deleteAppDataOnUninstall": true,
+      "artifactName": "${productName}-Setup-${version}.exe",
+      "uninstallDisplayName": "${productName}",
+      "createDesktopShortcut": true,
+      "installerIcon": "assets_task_01jv1bh5axegtva6b64gnqf5cj_1747023639_img_0.ico",
+      "uninstallerIcon": "assets_task_01jv1bh5axegtva6b64gnqf5cj_1747023639_img_0.ico",
+      "runAfterFinish": true,
+      "perMachine": false,
+      "include": "installer.nsh",
+      "warningsAsErrors": false,
+      "installerSidebar": null
     },
     "linux": {
       "target": [

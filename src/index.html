@@ -281,28 +281,20 @@
       <!-- Recording Options -->
       <div class="control-section">
         <div class="section-heading">Recording Options</div>
-        <div class="has-text-centered" style="display: flex; flex-direction: column; gap: 0.8rem;">
-          <!-- Webcam toggle -->
-          <label class="checkbox" style="cursor: pointer; user-select: none; margin: 0 auto;">
-            <input type="checkbox" id="webcamToggle" checked style="margin-right: 6px;" onchange="window.electronAPI?.toggleWebcam(this.checked)">
-            <span><i class="fas fa-video" style="margin-right: 5px; color: #1de9b6;"></i>Show Webcam Preview</span>
-          </label>
-          
-          <!-- System audio toggle -->
-          <label class="checkbox" style="cursor: pointer; user-select: none; margin: 0 auto; background: rgba(255, 152, 0, 0.08); border: 1px solid rgba(255, 152, 0, 0.3);" title="Record sounds playing on your computer (music, videos, etc.)">
-            <input type="checkbox" id="systemAudioToggle" style="margin-right: 6px;">
-            <span><i class="fas fa-volume-up" style="margin-right: 5px; color: #FF9800;"></i>Record System Audio</span>
+        <div class="has-text-centered" style="display: flex; flex-direction: column; gap: 0rem;">          <!-- Webcam toggle -->
+          <label class="checkbox" style="cursor: pointer; user-select: none; margin: 0 auto; display: inline-block; width: auto;">
+            <input type="checkbox" id="webcamToggle" checked style="margin-right: 6px; vertical-align: middle;" onchange="window.electronAPI?.toggleWebcam(this.checked)">
+            <span style="display: inline-block; vertical-align: middle;"><i class="fas fa-video" style="margin-right: 5px; color: #1de9b6;"></i>Show Webcam Preview</span>
           </label>
         </div>
       </div>
 
       <!-- Background Controls -->    
       <div class="control-section">
-        <div class="section-heading">Background Settings</div>
-        <div class="has-text-centered">
-          <label class="checkbox has-text-white" style="font-size:1em; margin-bottom: 0.5rem; display: block;">
-            <input type="checkbox" id="blurBgToggle" class="mr-2" onchange="window.electronAPI?.sendSetBlur(this.checked)">
-            Blur Background
+        <div class="section-heading">Background Settings</div>        <div class="has-text-centered" style="display: flex; flex-direction: column; gap: 0rem;">
+          <label class="checkbox has-text-white" style="cursor: pointer; user-select: none; margin: 0 auto; display: inline-block; width: auto;">
+            <input type="checkbox" id="blurBgToggle" style="margin-right: 6px; vertical-align: middle;" onchange="window.electronAPI?.sendSetBlur(this.checked)">
+            <span style="display: inline-block; vertical-align: middle;"><i class="fas fa-portrait" style="margin-right: 5px; color: #1de9b6;"></i>Blur Background</span>
           </label>
           <div class="color-presets" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; flex-wrap: wrap;">
             <button class="color-btn" data-bgcolor="#FFFFFF" style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid rgba(0,0,0,0.2); background: #FFFFFF; cursor: pointer; position: relative;" title="Natural"></button>
@@ -318,7 +310,7 @@
           <div class="control-section">
         <div class="section-heading">Audio Source</div>
         <div class="has-text-centered">
-          <div id="audioInputBtn" style="display:inline-flex;align-items:center;gap:0.3em;cursor:pointer;background:#232323;border-radius:8px;padding:0.4em 0.8em;box-shadow:0 2px 8px rgba(0,0,0,0.13);border:1.5px solid #444;min-width:120px;max-width:200px;position:relative;overflow:visible;margin:0 auto;">
+          <div id="audioInputBtn" style="display:inline-flex;align-items:center;gap:2em;cursor:pointer;background:#232323;border-radius:8px;padding:0.4em 0.8em;box-shadow:0 2px 8px rgba(0,0,0,0.13);border:1.5px solid #444;min-width:120px;max-width:200px;position:relative;overflow:visible;margin:0 auto;">
             <i class="fas fa-microphone" style="color:#fff;font-size:0.9em;"></i>
             <span id="audioInputLabel" style="color:#fff;font-size:0.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;display:inline-block;vertical-align:middle;">Select Microphone</span>
             <span id="audioInputBadge" style="background:#27ae60;color:#fff;font-size:0.75em;padding:0.15em 0.6em;border-radius:4px;margin-left:0.3em;">On</span>
@@ -334,9 +326,6 @@
 
       <div class="content has-text-centered mt-2">
         <span class="is-size-7 has-text-grey-light">Your recording will be saved as a .webm file after you stop.</span>
-        <div class="is-size-7 has-text-grey-light" style="margin-top:5px;font-style:italic;">
-          <i class="fas fa-info-circle" style="color:#1de9b6;"></i> System Audio recording requires browser permission.
-        </div>
       </div>
       </div> <!-- End of content-wrapper -->
     </div> <!-- End of container -->
@@ -664,5 +653,73 @@
       // Don't automatically initialize on load - we'll do it after scripts are loaded
       // window.addEventListener('load', initApp); // DISABLED - now handled by loadScripts()
     </script>
+    <script>
+  // Find the color picker element
+  const colorPicker = document.getElementById('background-color-picker');
+  
+  if (colorPicker) {
+    console.log('[Main] Found color picker element');
+    
+    // Update how color changes are handled
+    colorPicker.addEventListener('input', function() {
+      const selectedColor = this.value;
+      console.log('[Main] Color picked:', selectedColor);
+      
+      // Try both methods to ensure color is sent
+      if (window.electronAPI && typeof window.electronAPI.sendSetBgColor === 'function') {
+        console.log('[Main] Sending color via electronAPI:', selectedColor);
+        window.electronAPI.sendSetBgColor(selectedColor);
+      } else {
+        console.error('[Main] electronAPI.sendSetBgColor not available');
+      }
+      
+      if (window.webcamBackground && typeof window.webcamBackground.setBackgroundColor === 'function') {
+        console.log('[Main] Sending color via webcamBackground:', selectedColor);
+        window.webcamBackground.setBackgroundColor(selectedColor);
+      } else {
+        console.error('[Main] webcamBackground.setBackgroundColor not available');
+      }
+    });
+  } else {
+    console.error('[Main] Color picker not found');
+  }
+</script>
+<script>
+  // Instead of looking for a color picker input, we need to use the color buttons
+  const colorButtons = document.querySelectorAll('.color-btn');
+  
+  if (colorButtons.length > 0) {
+    console.log('[Main] Found', colorButtons.length, 'color buttons');
+    
+    // Update how color changes are handled - attach event listeners to all color buttons
+    colorButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const selectedColor = this.getAttribute('data-bgcolor');
+        console.log('[Main] Color button clicked:', selectedColor);
+        
+        // Try both methods to ensure color is sent
+        if (window.electronAPI && typeof window.electronAPI.sendSetBgColor === 'function') {
+          console.log('[Main] Sending color via electronAPI:', selectedColor);
+          window.electronAPI.sendSetBgColor(selectedColor);
+        } else {
+          console.error('[Main] electronAPI.sendSetBgColor not available');
+        }
+        
+        if (window.webcamBackground && typeof window.webcamBackground.setBackgroundColor === 'function') {
+          console.log('[Main] Sending color via webcamBackground:', selectedColor);
+          window.webcamBackground.setBackgroundColor(selectedColor);
+        } else {
+          console.error('[Main] webcamBackground.setBackgroundColor not available');
+        }
+        
+        // Update visual selection of buttons
+        colorButtons.forEach(btn => btn.style.borderColor = 'rgba(255,255,255,0.2)');
+        this.style.borderColor = '#fff';
+      });
+    });
+  } else {
+    console.error('[Main] No color buttons found');
+  }
+</script>
   </body>
 </html>

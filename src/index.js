@@ -95,8 +95,7 @@ enableLogging();
 let mainWindow = null;
 let webcamWindow = null;
 
-const createWindow = () => {
-  mainWindow = new BrowserWindow({
+const createWindow = () => {  mainWindow = new BrowserWindow({
     width: 380,
     height: 620,
     resizable: false,
@@ -109,7 +108,7 @@ const createWindow = () => {
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: true,
-      devTools: false,
+      devTools: process.env.NODE_ENV === 'development',
       // Add required permissions for desktop capture and system audio
       additionalArguments: [
         '--enable-features=MediaStreamAPI,GetDisplayMedia',
@@ -121,15 +120,16 @@ const createWindow = () => {
     }
   });
   
-
-  mainWindow.webContents.openDevTools();
+  // Only open DevTools in development mode
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.webContents.openDevTools();
+  }
   mainWindow.webContents.on('did-fail-load', (e, errorCode, errorDescription, validatedURL) => {
     console.error('[MainWindow] failed to load:', validatedURL, errorCode, errorDescription);
   });
 
   // DEBUG: check preload file presence
   console.log('[Main] preloadPath exists:', fs.existsSync(preloadOption));
-
   // Add error handling for crashed events
   mainWindow.webContents.on('crashed', (event) => {
     console.error('[MainWindow] Renderer process crashed!');
@@ -142,48 +142,80 @@ const createWindow = () => {
       }
     }, 1000);
   });  
-
-  // Open DevTools for debugging
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
   
   // Remove default menu
   mainWindow.setMenu(null);
 
-  mainWindow.loadFile(path.join(__dirname, 'index.html'))
-    .then(() => {
+  mainWindow.loadFile(path.join(__dirname, 'index.html'))    .then(() => {
       console.log('Window loaded successfully');
       mainWindow.show();
       // Create webcam window by default
       createWebcamWindow();
+      
+      // Add close handler to properly clean up webcam window when main window is closed
+      mainWindow.on('close', (event) => {
+        console.log('[Main] Main window closing, cleaning up webcam window...');
+        // Add a small delay to ensure webcam cleanup is handled before app exit
+        if (webcamWindow && !webcamWindow.isDestroyed()) {
+          try {
+            // Send message to stop the webcam stream before destroying
+            webcamWindow.webContents.send('stop-webcam');
+            // Small delay to let the webcam cleanup happen
+            setTimeout(() => {
+              if (webcamWindow && !webcamWindow.isDestroyed()) {
+                webcamWindow.destroy();
+                webcamWindow = null;
+              }
+            }, 100);
+          } catch (err) {
+            console.error('[Main] Error during webcam cleanup:', err);
+            if (webcamWindow) {
+              webcamWindow.destroy();
+              webcamWindow = null;
+            }
+          }
+        }
+      });
     })
     .catch(err => {
       console.error('Failed to load window:', err);
     });
 };
 
-const createWebcamWindow = () => {
-  if (webcamWindow) {
+const createWebcamWindow = () => {  if (webcamWindow) {
+    webcamWindow.setTitle(''); // Ensure title is empty
+    webcamWindow.setSkipTaskbar(true); // Ensure it doesn't appear in taskbar
+    webcamWindow.setMenuBarVisibility(false); // Hide menu bar
+    webcamWindow.setAutoHideMenuBar(true); // Auto-hide menu bar
     webcamWindow.show();
+    if (process.env.NODE_ENV === 'development') {
       webcamWindow.webContents.openDevTools();
+    }
     return webcamWindow;
   }
   
   const { screen } = require('electron');
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width, height } = primaryDisplay.workAreaSize;
-  
-  webcamWindow = new BrowserWindow({
+  const { width, height } = primaryDisplay.workAreaSize;  webcamWindow = new BrowserWindow({
     width: 230,
     height: 230,
     frame: false,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: false,
+    autoHideMenuBar: true,
     closeable: false,
     minimizable: false,
     maximizable: false,
-    titleBarStyle: 'hidden',
+    title: '',
     transparent: true,
+    backgroundColor: '#00FFFFFF', // Completely transparent background
+    opacity: 1.0,
     alwaysOnTop: true,
     resizable: false,
     skipTaskbar: true,
+    roundedCorners: false,
+    thickFrame: false,
+    paintWhenInitiallyHidden: false, // Prevent initial paint artifacts
     x: width - 250,  // Position from right
     y: height - 250, // Position from bottom
     movable: true,  // Enable window dragging
@@ -202,12 +234,36 @@ const createWebcamWindow = () => {
       enableWebRTC: true
     }
   });
-
-  // Open DevTools for webcam window
+  // Open DevTools for webcam window only in development  // Open DevTools for webcam window
   webcamWindow.webContents.once('dom-ready', () => {
     webcamWindow.webContents.openDevTools({ mode: 'detach' });
   });
-
+    // Load the webcam preview with proper initialization
+  webcamWindow.once('ready-to-show', () => {
+    webcamWindow.setTitle(''); // Ensure title is empty
+    webcamWindow.setBackgroundColor('#00FFFFFF'); // Set transparent background color
+    webcamWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    webcamWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+    
+    // Hide any traces of Chrome frame with CSS
+    webcamWindow.webContents.insertCSS(`
+      * {
+        background: transparent !important;
+      }
+      
+      .title-bar, .caption-area, .header, 
+      *[class*="title"], *[id*="title"],
+      *[class*="frame"], *[id*="frame"],
+      *[class*="header"], *[id*="header"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        opacity: 0 !important;
+        background: transparent !important;
+      }
+    `);
+  });
+    
   webcamWindow.loadFile(path.join(__dirname, 'webcamPreview.html'));
   webcamWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   webcamWindow.setAlwaysOnTop(true, 'screen-saver', 1);
@@ -217,9 +273,27 @@ const createWebcamWindow = () => {
     webcamWindow.setMovable(true);
     webcamWindow.setIgnoreMouseEvents(false);
   });
-
+  
   webcamWindow.on('moved', () => {
     webcamWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+  });
+  
+  // Add content-rendered handler to fix appearance when window content is ready
+  webcamWindow.webContents.on('did-finish-navigate', () => {
+    console.log('[Main] Webcam window finished navigating, applying fixes');
+    
+    // Apply a slight delay to ensure the DOM is fully loaded
+    setTimeout(() => {
+      webcamWindow.webContents.send('set-window-transparent');
+      webcamWindow.webContents.send('remove-title-bar');
+      webcamWindow.webContents.send('fix-window-position');
+    }, 100);
+  });
+  
+  // Add closed event handler to prevent webcam window orphaning
+  webcamWindow.on('closed', () => {
+    console.log('[Main] Webcam window was closed');
+    webcamWindow = null;
   });
 
   return webcamWindow;
@@ -284,19 +358,37 @@ ipcMain.on('toggle-webcam', (event, enabled) => {
     } else {
       // Show existing window and bring to front
       console.log('[Main] Showing existing webcam window');
-      webcamWindow.show();
-      webcamWindow.setAlwaysOnTop(true, 'screen-saver', 1);
       
       // IMPORTANT: Reload the webcam preview to reset initialization
       webcamWindow.webContents.reload();
+      
+      // Wait for the reload to complete before showing the window
+      webcamWindow.webContents.once('did-finish-load', () => {
+        // Force window fixes after reload
+        setTimeout(() => {
+          webcamWindow.webContents.send('fix-window-position');
+          webcamWindow.show();
+          webcamWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+          
+          // Force transparency and removal of title bar
+          webcamWindow.setBackgroundColor('#00000000');
+          webcamWindow.webContents.send('set-window-transparent');
+          webcamWindow.webContents.send('remove-title-bar');
+        }, 50);
+      });
     }
-  } else {
-    // Hide webcam and stop the stream
+  } else {    // Hide webcam and stop the stream
     if (webcamWindow && !webcamWindow.isDestroyed()) {
-      console.log('[Main] Hiding webcam window');
+      console.log('[Main] Stopping webcam stream and hiding window');
       // Send message to stop the webcam stream before hiding the window
       webcamWindow.webContents.send('stop-webcam');
-      webcamWindow.hide();
+      
+      // Add a small delay to ensure the webcam is fully stopped before hiding
+      setTimeout(() => {
+        if (webcamWindow && !webcamWindow.isDestroyed()) {
+          webcamWindow.hide();
+        }
+      }, 100);
     } else {
       console.log('[Main] No webcam window to hide');
     }
@@ -468,41 +560,67 @@ app.whenReady().then(() => {
     app.relaunch();
     app.exit(0);
   });
-
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
-  
-  // Add main window close handler after window is created
-  if (mainWindow) {
-    mainWindow.on('close', () => {
-      console.log('Main window closing, cleaning up webcam window...');
-      if (webcamWindow) {
-        webcamWindow.destroy();
-        webcamWindow = null;
-      }
-    });
-  }
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit();
+    console.log('[Main] All windows closed, preparing to quit...');
+    // Add a short delay before quitting to allow webcam cleanup
+    setTimeout(() => {
+      // Force destroy any remaining webcam window
+      if (webcamWindow && !webcamWindow.isDestroyed()) {
+        try {
+          console.log('[Main] Force cleaning webcam window before quit');
+          webcamWindow.webContents.send('stop-webcam');
+          webcamWindow.destroy();
+          webcamWindow = null;
+        } catch (err) {
+          console.error('[Main] Error during final webcam cleanup:', err);
+        }
+      }
+      app.quit();
+    }, 300);
   }
 });
 
 // Handle app quit
 app.on('before-quit', () => {
-  console.log('App quitting, cleaning up windows...');
-  if (webcamWindow) {
-    webcamWindow.removeAllListeners('close');
-    webcamWindow.destroy();
+  console.log('[Main] App quitting, cleaning up all resources...');
+  
+  // Clean up tray icon if it exists
+  if (tray) {
+    console.log('[Main] Removing tray icon');
+    tray.destroy();
+    tray = null;
+  }
+  
+  // Make sure webcam window is properly stopped and destroyed
+  if (webcamWindow && !webcamWindow.isDestroyed()) {
+    try {
+      console.log('[Main] Stopping webcam streams and destroying window');
+      webcamWindow.webContents.send('stop-webcam');
+      webcamWindow.removeAllListeners('close');
+      // Use a synchronous approach for cleanup during app quit
+      webcamWindow.destroy();
+    } catch (err) {
+      console.error('[Main] Error destroying webcam window:', err);
+    }
     webcamWindow = null;
   }
-  if (mainWindow) {
-    mainWindow.destroy();
+  
+  // Destroy main window if it exists
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try {
+      console.log('[Main] Destroying main window');
+      mainWindow.destroy();
+    } catch (err) {
+      console.error('[Main] Error destroying main window:', err);
+    }
     mainWindow = null;
   }
 });
